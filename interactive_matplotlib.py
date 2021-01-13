@@ -1,5 +1,6 @@
 import sys
 import matplotlib
+import numpy
 from math import ceil
 matplotlib.use('Qt5Agg')
 
@@ -71,17 +72,17 @@ class InterferogramDynamicCanvas(FigureCanvasQTAgg, TimedAnimation):
 class FFTDynamicCanvas(FigureCanvasQTAgg, TimedAnimation):
     def __init__(self, parent_window, **kwargs):
         self.fig = Figure(**kwargs)
-        ax = self.fig.add_subplot(111)
+        self.ax = self.fig.add_subplot(111)
 
-        ax.set_xlabel("Frequency")
-        ax.set_ylabel("Normalized intensity")
+        self.ax.set_xlabel("Frequency")
+        self.ax.set_ylabel("Normalized intensity")
         self.line = Line2D([], [], color='#008080', ls='-', marker='o')
-        ax.add_line(self.line)
-        ax.set_xlim(0, 100)
-        ax.set_ylim(0, 1)
+        self.ax.add_line(self.line)
+        self.ax.set_xlim(0, 100)
+        self.ax.set_ylim(0, 1)
 
         FigureCanvasQTAgg.__init__(self, self.fig)
-        TimedAnimation.__init__(self, self.fig, interval=100, blit=True)
+        TimedAnimation.__init__(self, self.fig, interval=100)
         self.fig.tight_layout()
 
     def new_frame_seq(self):
@@ -97,6 +98,9 @@ class FFTDynamicCanvas(FigureCanvasQTAgg, TimedAnimation):
     def _draw_frame(self, framedata, force_regenerate=False):
         global fft_data
         self.line.set_data(fft_data)
+
+        max_frequency = max(fft_data[0][~numpy.isinf(fft_data[0])])
+        self.ax.set_xlim(0, max_frequency)
         self._drawn_artists = [self.line]
 
     def _init_draw(self):
