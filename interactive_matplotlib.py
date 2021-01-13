@@ -11,16 +11,11 @@ from matplotlib.figure import Figure
 from matplotlib.lines import Line2D
 
 
-class MplCanvas(FigureCanvasQTAgg):
-    def __init__(self, parent=None, width=5, height=4, dpi=100):
-        fig = Figure(figsize=(width, height), dpi=dpi)
-        self.axes = fig.add_subplot(111)
-        super(MplCanvas, self).__init__(fig)
-
-
 class AnimatedCanvas(FigureCanvasQTAgg, TimedAnimation):
+    def __init__(self, parent_window, **kwargs):
+        self.previous_parameters = parent_window.fft_parameters.copy()
+        self.parent_window = parent_window
 
-    def __init__(self, **kwargs):
         self.fig = Figure(**kwargs)
         ax = self.fig.add_subplot(111)
 
@@ -34,11 +29,19 @@ class AnimatedCanvas(FigureCanvasQTAgg, TimedAnimation):
         FigureCanvasQTAgg.__init__(self, self.fig)
         TimedAnimation.__init__(self, self.fig, interval=100, blit=True)
 
+        self.data = [[], []]
+
     def new_frame_seq(self):
         return iter(range(10))
 
     def _draw_frame(self, framedata):
-        self.line.set_data(numpy.random.rand(5)*100-50, numpy.random.rand(5)*50)
+
+        if self.previous_parameters != self.parent_window.fft_parameters:
+            self.data = numpy.random.rand(5)*100-50, numpy.random.rand(5)*50
+
+            self.previous_parameters = self.parent_window.fft_parameters.copy()
+
+        self.line.set_data(self.data)
         self._drawn_artists = [self.line]
 
     def _init_draw(self):
@@ -46,15 +49,52 @@ class AnimatedCanvas(FigureCanvasQTAgg, TimedAnimation):
         for l in lines:
             l.set_data([], [])
 
+class HorizontalParameterSlider(QtWidgets.QHBoxLayout):
+    def __init__(self, parent_window, parameter_key, minValue=0, maxValue=10, step=1, *args):
+        super(QtWidgets.QHBoxLayout, self).__init__(*args)
 
-class MainWindow(QtWidgets.QMainWindow):
+        self.parent_window = parent_window
+        self.key = parameter_key
 
-    def __init__(self, *args, **kwargs):
-        super(MainWindow, self).__init__(*args, **kwargs)
+        self.slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
+        self.slider.setTickPosition(parent_window.fft_parameters[self.key])
+        self.slider.setMinimum(minValue)
+        self.slider.setMaximum(maxValue)
+        self.slider.setSingleStep(step)
+        self.slider.valueChanged.connect(self.updateSliderLabel)
 
-        self.canvas = AnimatedCanvas(figsize=(5, 4), dpi=100)
-        self.setCentralWidget(self.canvas)
+        self.label = QtWidgets.QLabel()
+        self.label.setText(self.key+": "+str(minValue))
 
+        self.addWidget(self.label)
+        self.addWidget(self.slider)
+
+    def updateSliderLabel(self):
+        value = self.slider.value()
+        self.label.setText(self.key+": "+str(value))
+        self.parent_window.fft_parameters[self.key] = value
+
+
+class MainWindow(QtWidgets.QWidget):
+
+    def __init__(self, parent=None, *args):
+        super(QtWidgets.QWidget, self).__init__(*args)
+        self.fft_parameters = {"Step": 0, "Interval": 10, "Noise": 1}
+
+        self.step_slider = HorizontalParameterSlider(self, "Step")
+        self.interval_slider = HorizontalParameterSlider(self, "Interval")
+        self.noise_slider = HorizontalParameterSlider(self, "Noise")
+
+        self.canvas = AnimatedCanvas(self, figsize=(5, 4), dpi=100)
+
+
+        self.mainLayout = QtWidgets.QVBoxLayout()
+        self.mainLayout.addWidget(self.canvas)
+        self.mainLayout.addLayout(self.step_slider)
+        self.mainLayout.addLayout(self.interval_slider)
+        self.mainLayout.addLayout(self.noise_slider)
+
+        self.setLayout(self.mainLayout)
 
 
 app = QtWidgets.QApplication(sys.argv)
