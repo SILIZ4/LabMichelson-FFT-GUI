@@ -34,23 +34,32 @@ class InterferogramDynamicCanvas(FigureCanvasQTAgg, TimedAnimation):
 
         FigureCanvasQTAgg.__init__(self, self.fig)
         TimedAnimation.__init__(self, self.fig, interval=100, blit=True)
+        self.fig.tight_layout()
+
+        self.generate_data()
 
     def new_frame_seq(self):
         return iter(range(10))
 
-    def _draw_frame(self, framedata, force_regenerate=False):
+    def generate_data(self):
         current_fft_parameters = self.parent_window.fft_parameters
 
         global interferogram_data
-        if self.previous_parameters != current_fft_parameters or force_regenerate:
-            interferogram_data = generate_data.generateHeNeInterferogram(
-                    0, current_fft_parameters["Interval"], 
-                    ceil(current_fft_parameters["Interval"]/current_fft_parameters["Step"]),
-                    current_fft_parameters["Noise"])
+        interferogram_data = generate_data.generateHeNeInterferogram(
+                0, current_fft_parameters["Interval"], 
+                ceil(current_fft_parameters["Interval"]/current_fft_parameters["Step"]),
+                current_fft_parameters["Noise"])
 
-            self.parent_window.fft.compute_fft() # Ensures that FFT computed after data generated
+        self.parent_window.fft.compute_fft() # Ensures that FFT computed after data generated
+
+    def _draw_frame(self, framedata):
+        current_fft_parameters = self.parent_window.fft_parameters
+
+        if self.previous_parameters != current_fft_parameters:
+            self.generate_data()
             self.previous_parameters = current_fft_parameters.copy()
 
+        global interferogram_data
         self.line.set_data(interferogram_data)
         self._drawn_artists = [self.line]
 
@@ -73,6 +82,7 @@ class FFTDynamicCanvas(FigureCanvasQTAgg, TimedAnimation):
 
         FigureCanvasQTAgg.__init__(self, self.fig)
         TimedAnimation.__init__(self, self.fig, interval=100, blit=True)
+        self.fig.tight_layout()
 
     def new_frame_seq(self):
         return iter(range(10))
@@ -102,15 +112,17 @@ class HorizontalParameterSlider(QtWidgets.QHBoxLayout):
         self.key = parameter_key
         self.scale = scale
 
+        initial_value = parent_window.fft_parameters[self.key]
+
         self.slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
-        self.slider.setTickPosition(parent_window.fft_parameters[self.key])
+        self.slider.setValue(initial_value*scale)
         self.slider.setMinimum(minValue)
         self.slider.setMaximum(maxValue)
         self.slider.setSingleStep(step)
         self.slider.valueChanged.connect(self.updateSliderLabel)
 
         self.label = QtWidgets.QLabel()
-        self.label.setText(self.key+": "+str(minValue/scale))
+        self.label.setText(self.key+": "+str(initial_value))
 
         self.addWidget(self.label)
         self.addWidget(self.slider)
@@ -126,15 +138,14 @@ class MainWindow(QtWidgets.QWidget):
 
     def __init__(self, parent=None, *args):
         super(QtWidgets.QWidget, self).__init__(*args)
-        self.fft_parameters = {"Step": 10, "Interval": 100, "Noise": 0}
+        self.fft_parameters = {"Step": 1, "Interval": 100, "Noise": 0}
 
         self.step_slider = HorizontalParameterSlider(self, "Step", 1, 200, 10, scale=10)
         self.interval_slider = HorizontalParameterSlider(self, "Interval", 50, 100, 5)
         self.noise_slider = HorizontalParameterSlider(self, "Noise", 0, 100, 2, scale=100)
 
-        self.interferogram = InterferogramDynamicCanvas(self, figsize=(8, 4), dpi=100)
         self.fft = FFTDynamicCanvas(self, figsize=(8, 4), dpi=100)
-
+        self.interferogram = InterferogramDynamicCanvas(self, figsize=(8, 4), dpi=100)
 
         self.mainLayout = QtWidgets.QVBoxLayout()
         self.mainLayout.addWidget(self.interferogram)
