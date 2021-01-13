@@ -5,7 +5,9 @@ L'interface graphique permet de sélectionner la plage de valeurs échantillonn�
 dans les données.
 
 L'application utilise le framework de Qt pour créer l'interface graphique. Il faut donc installer la librairie `PyQt5` avec 
-```pip install pyqt5```
+```
+pip install pyqt5
+```
 ou avec l'environnement de développement de votre choix.
 
 ## Contrôle du montage de l'interféromètre de Michelson
