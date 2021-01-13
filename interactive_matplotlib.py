@@ -30,26 +30,31 @@ class InterferogramDynamicCanvas(FigureCanvasQTAgg, TimedAnimation):
         ax.set_ylabel("Voltage")
         self.line = Line2D([], [], color='#008080', ls='-', marker='o')
         ax.add_line(self.line)
-        ax.set_xlim(0, 100)
+        ax.set_xlim(5, 105)
         ax.set_ylim(0, 3)
 
         FigureCanvasQTAgg.__init__(self, self.fig)
         TimedAnimation.__init__(self, self.fig, interval=100, blit=True)
         self.fig.tight_layout()
 
-        self.generate_data()
-
     def new_frame_seq(self):
         return iter(range(10))
 
     def generate_data(self):
         current_fft_parameters = self.parent_window.fft_parameters
+        generation_parameters = ( 5, 5+current_fft_parameters["Interval"], 
+            ceil(current_fft_parameters["Interval"]/current_fft_parameters["Step"]),
+                current_fft_parameters["Noise"]
+                )
 
         global interferogram_data
-        interferogram_data = generate_data.generateHeNeInterferogram(
-                0, current_fft_parameters["Interval"], 
-                ceil(current_fft_parameters["Interval"]/current_fft_parameters["Step"]),
-                current_fft_parameters["Noise"])
+        if self.parent_window.HeNesource_radio.isChecked():
+            interferogram_data = generate_data.generateHeNeInterferogram(*generation_parameters)
+        elif self.parent_window.whitesource_radio.isChecked(): 
+            interferogram_data = generate_data.generateWhiteLightInterferogram(*generation_parameters)
+        else:
+            raise ValueError("Unhandled error: one of the source type radio button is not handled")
+
 
         self.parent_window.fft.compute_fft() # Ensures that FFT computed after data generated
 
@@ -75,7 +80,7 @@ class FFTDynamicCanvas(FigureCanvasQTAgg, TimedAnimation):
         self.ax = self.fig.add_subplot(111)
 
         self.ax.set_xlabel("Frequency")
-        self.ax.set_ylabel("Normalized intensity")
+        self.ax.set_ylabel("Intensity")
         self.line = Line2D([], [], color='#008080', ls='-', marker='o')
         self.ax.add_line(self.line)
         self.ax.set_xlim(0, 100)
@@ -93,14 +98,16 @@ class FFTDynamicCanvas(FigureCanvasQTAgg, TimedAnimation):
 
         global fft_data
         fft_data = w, abs(s)
-        fft_data = fft_data[0], fft_data[1]/max(fft_data[1])  # Normalize intensity
+        # fft_data = fft_data[0], fft_data[1]/max(fft_data[1])  # Normalize intensity
 
     def _draw_frame(self, framedata, force_regenerate=False):
         global fft_data
         self.line.set_data(fft_data)
 
         max_frequency = max(fft_data[0][~numpy.isinf(fft_data[0])])
-        self.ax.set_xlim(0, max_frequency)
+        max_intensity = max(fft_data[1])
+        self.ax.set_xlim(-max_frequency, max_frequency)
+        self.ax.set_ylim(0, max_intensity)
         self._drawn_artists = [self.line]
 
     def _init_draw(self):
@@ -144,6 +151,8 @@ class MainWindow(QtWidgets.QWidget):
         super(QtWidgets.QWidget, self).__init__(*args)
         self.fft_parameters = {"Step": 1, "Interval": 100, "Noise": 0}
 
+        # The order of creation of these objects is important, some values must
+        # be initialized before others
         self.step_slider = HorizontalParameterSlider(self, "Step", 1, 200, 10, scale=10)
         self.interval_slider = HorizontalParameterSlider(self, "Interval", 50, 100, 5)
         self.noise_slider = HorizontalParameterSlider(self, "Noise", 0, 100, 2, scale=100)
@@ -151,15 +160,31 @@ class MainWindow(QtWidgets.QWidget):
         self.fft = FFTDynamicCanvas(self, figsize=(8, 4), dpi=100)
         self.interferogram = InterferogramDynamicCanvas(self, figsize=(8, 4), dpi=100)
 
+        self.HeNesource_radio = QtWidgets.QRadioButton("HeNe source")
+        self.HeNesource_radio.toggled.connect(self.interferogram.generate_data)
+        self.HeNesource_radio.toggle()
+        self.whitesource_radio = QtWidgets.QRadioButton("White source")
+        self.whitesource_radio.toggled.connect(self.interferogram.generate_data)
+        self.radioLayout = QtWidgets.QHBoxLayout()
+        self.radioLayout.addWidget(self.HeNesource_radio)
+        self.radioLayout.addWidget(self.whitesource_radio)
+
+        refresh_data_button = QtWidgets.QPushButton("Generate new data")
+        refresh_data_button.clicked.connect(self.interferogram.generate_data)
+
         self.mainLayout = QtWidgets.QVBoxLayout()
         self.mainLayout.addWidget(self.interferogram)
         self.mainLayout.addWidget(self.fft)
         self.mainLayout.addLayout(self.step_slider)
         self.mainLayout.addLayout(self.interval_slider)
         self.mainLayout.addLayout(self.noise_slider)
+        self.mainLayout.addLayout(self.radioLayout)
+        self.mainLayout.addLayout(self.radioLayout)
+        self.mainLayout.addWidget(refresh_data_button)
 
+        self.interferogram.generate_data()
         self.setLayout(self.mainLayout)
-
+        self.setWindowTitle("Effect of parameters on interferogram and its Fourier transform")
 
 app = QtWidgets.QApplication(sys.argv)
 window = MainWindow()
