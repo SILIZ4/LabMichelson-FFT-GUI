@@ -11,7 +11,11 @@ from matplotlib.figure import Figure
 from matplotlib.lines import Line2D
 
 import generate_data
+from compute_fft import fourierTransformInterferogram
 
+
+interferogram_data = [[], []]
+fft_data = [[], []]
 
 class InterferogramDynamicCanvas(FigureCanvasQTAgg, TimedAnimation):
     def __init__(self, parent_window, **kwargs):
@@ -21,8 +25,8 @@ class InterferogramDynamicCanvas(FigureCanvasQTAgg, TimedAnimation):
         self.fig = Figure(**kwargs)
         ax = self.fig.add_subplot(111)
 
-        ax.set_xlabel('x axis')
-        ax.set_ylabel('y axis')
+        ax.set_xlabel("Position")
+        ax.set_ylabel("Voltage")
         self.line = Line2D([], [], color='#008080', ls='-', marker='o')
         ax.add_line(self.line)
         ax.set_xlim(0, 100)
@@ -31,23 +35,58 @@ class InterferogramDynamicCanvas(FigureCanvasQTAgg, TimedAnimation):
         FigureCanvasQTAgg.__init__(self, self.fig)
         TimedAnimation.__init__(self, self.fig, interval=100, blit=True)
 
-        self.data = [[], []]
-
     def new_frame_seq(self):
         return iter(range(10))
 
     def _draw_frame(self, framedata, force_regenerate=False):
         current_fft_parameters = self.parent_window.fft_parameters
 
+        global interferogram_data
         if self.previous_parameters != current_fft_parameters or force_regenerate:
-            self.data = generate_data.generateHeNeInterferogram(
+            interferogram_data = generate_data.generateHeNeInterferogram(
                     0, current_fft_parameters["Interval"], 
                     ceil(current_fft_parameters["Interval"]/current_fft_parameters["Step"]),
                     current_fft_parameters["Noise"])
 
+            self.parent_window.fft.compute_fft() # Ensures that FFT computed after data generated
             self.previous_parameters = current_fft_parameters.copy()
 
-        self.line.set_data(self.data)
+        self.line.set_data(interferogram_data)
+        self._drawn_artists = [self.line]
+
+    def _init_draw(self):
+        lines = [self.line]
+        for l in lines:
+            l.set_data([], [])
+
+class FFTDynamicCanvas(FigureCanvasQTAgg, TimedAnimation):
+    def __init__(self, parent_window, **kwargs):
+        self.fig = Figure(**kwargs)
+        ax = self.fig.add_subplot(111)
+
+        ax.set_xlabel("Frequency")
+        ax.set_ylabel("Normalized intensity")
+        self.line = Line2D([], [], color='#008080', ls='-', marker='o')
+        ax.add_line(self.line)
+        ax.set_xlim(0, 100)
+        ax.set_ylim(0, 1)
+
+        FigureCanvasQTAgg.__init__(self, self.fig)
+        TimedAnimation.__init__(self, self.fig, interval=100, blit=True)
+
+    def new_frame_seq(self):
+        return iter(range(10))
+
+    def compute_fft(self):
+        w, f, s = fourierTransformInterferogram(*interferogram_data)
+
+        global fft_data
+        fft_data = w, abs(s)
+        fft_data = fft_data[0], fft_data[1]/max(fft_data[1])  # Normalize intensity
+
+    def _draw_frame(self, framedata, force_regenerate=False):
+        global fft_data
+        self.line.set_data(fft_data)
         self._drawn_artists = [self.line]
 
     def _init_draw(self):
@@ -87,17 +126,19 @@ class MainWindow(QtWidgets.QWidget):
 
     def __init__(self, parent=None, *args):
         super(QtWidgets.QWidget, self).__init__(*args)
-        self.fft_parameters = {"Step": 5, "Interval": 100, "Noise": 0}
+        self.fft_parameters = {"Step": 10, "Interval": 100, "Noise": 0}
 
-        self.step_slider = HorizontalParameterSlider(self, "Step", 1, 10)
+        self.step_slider = HorizontalParameterSlider(self, "Step", 1, 200, 10, scale=10)
         self.interval_slider = HorizontalParameterSlider(self, "Interval", 50, 100, 5)
         self.noise_slider = HorizontalParameterSlider(self, "Noise", 0, 100, 2, scale=100)
 
-        self.canvas = InterferogramDynamicCanvas(self, figsize=(8, 4), dpi=100)
+        self.interferogram = InterferogramDynamicCanvas(self, figsize=(8, 4), dpi=100)
+        self.fft = FFTDynamicCanvas(self, figsize=(8, 4), dpi=100)
 
 
         self.mainLayout = QtWidgets.QVBoxLayout()
-        self.mainLayout.addWidget(self.canvas)
+        self.mainLayout.addWidget(self.interferogram)
+        self.mainLayout.addWidget(self.fft)
         self.mainLayout.addLayout(self.step_slider)
         self.mainLayout.addLayout(self.interval_slider)
         self.mainLayout.addLayout(self.noise_slider)
