@@ -6,6 +6,7 @@ matplotlib.use('Qt5Agg')
 
 from PyQt5 import QtCore, QtWidgets
 
+from matplotlib import rcParams
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.animation import TimedAnimation
 from matplotlib.figure import Figure
@@ -15,37 +16,59 @@ import generate_data
 from compute_fft import fourierTransformInterferogram
 
 
+darkblack = "#1a1a1a"
+midblack ="#3d3d3d"
+lightgray = "#ababab"
+
+rcParams["axes.labelsize"] = 9
+rcParams["axes.facecolor"] = "white"
+rcParams["axes.grid"] = False
+rcParams["axes.edgecolor"] = lightgray
+
+rcParams["xtick.labelsize"] = 8
+rcParams["ytick.labelsize"] = 8
+rcParams["xtick.color"] = midblack 
+rcParams["ytick.color"] = midblack
+
+rcParams["legend.edgecolor"] = "white"
+rcParams["legend.fontsize"] = 10
+rcParams["text.color"] = darkblack
+
+
 interferogram_data = [[], []]
 fft_data = [[], []]
 
 class InterferogramDynamicCanvas(FigureCanvasQTAgg, TimedAnimation):
     def __init__(self, parent_window, **kwargs):
-        self.previous_parameters = parent_window.fft_parameters.copy()
+        self.previous_parameters = parent_window.interferogram_parameters.copy()
         self.parent_window = parent_window
 
         self.fig = Figure(**kwargs)
         ax = self.fig.add_subplot(111)
 
-        ax.set_xlabel("Position")
-        ax.set_ylabel("Voltage")
+        ax.set_xlabel("Position du miroir[µm]")
+        ax.set_ylabel("Voltage [V]")
         self.line = Line2D([], [], color='#008080', ls='-', marker='o')
         ax.add_line(self.line)
         ax.set_xlim(5, 105)
         ax.set_ylim(0, 3)
 
         FigureCanvasQTAgg.__init__(self, self.fig)
-        TimedAnimation.__init__(self, self.fig, interval=100, blit=True)
+        TimedAnimation.__init__(self, self.fig, interval=100)
+        self.fig.suptitle("Interférogramme")
         self.fig.tight_layout()
+        self.fig.subplots_adjust(top=0.85, bottom=0.25)
 
     def new_frame_seq(self):
         return iter(range(10))
 
     def generate_data(self):
-        current_fft_parameters = self.parent_window.fft_parameters
-        generation_parameters = ( 5, 5+current_fft_parameters["Interval"], 
-            ceil(current_fft_parameters["Interval"]/current_fft_parameters["Step"]),
-                current_fft_parameters["Noise"]
-                )
+        current_interferogram_parameters = self.parent_window.interferogram_parameters
+
+        N = ceil(current_interferogram_parameters["Plage"]/current_interferogram_parameters["Pas"])
+
+        generation_parameters = (0, current_interferogram_parameters["Plage"], 
+                N, current_interferogram_parameters["%Bruit"])
 
         global interferogram_data
         if self.parent_window.HeNesource_radio.isChecked():
@@ -59,11 +82,11 @@ class InterferogramDynamicCanvas(FigureCanvasQTAgg, TimedAnimation):
         self.parent_window.fft.compute_fft() # Ensures that FFT computed after data generated
 
     def _draw_frame(self, framedata):
-        current_fft_parameters = self.parent_window.fft_parameters
+        current_interferogram_parameters = self.parent_window.interferogram_parameters
 
-        if self.previous_parameters != current_fft_parameters:
+        if self.previous_parameters != current_interferogram_parameters:
             self.generate_data()
-            self.previous_parameters = current_fft_parameters.copy()
+            self.previous_parameters = current_interferogram_parameters.copy()
 
         global interferogram_data
         self.line.set_data(interferogram_data)
@@ -79,8 +102,8 @@ class FFTDynamicCanvas(FigureCanvasQTAgg, TimedAnimation):
         self.fig = Figure(**kwargs)
         self.ax = self.fig.add_subplot(111)
 
-        self.ax.set_xlabel("Frequency")
-        self.ax.set_ylabel("Intensity")
+        self.ax.set_xlabel("Longueur d'onde [nm]")
+        self.ax.set_ylabel("Intensité")
         self.line = Line2D([], [], color='#008080', ls='-', marker='o')
         self.ax.add_line(self.line)
         self.ax.set_xlim(0, 100)
@@ -88,7 +111,9 @@ class FFTDynamicCanvas(FigureCanvasQTAgg, TimedAnimation):
 
         FigureCanvasQTAgg.__init__(self, self.fig)
         TimedAnimation.__init__(self, self.fig, interval=100)
+        self.fig.suptitle("Transformée de Fourier")
         self.fig.tight_layout()
+        self.fig.subplots_adjust(top=0.85, bottom=0.25)
 
     def new_frame_seq(self):
         return iter(range(10))
@@ -97,11 +122,12 @@ class FFTDynamicCanvas(FigureCanvasQTAgg, TimedAnimation):
         w, f, s = fourierTransformInterferogram(*interferogram_data)
 
         global fft_data
-        fft_data = w, abs(s)
-        # fft_data = fft_data[0], fft_data[1]/max(fft_data[1])  # Normalize intensity
+        fft_data = w*1000, abs(s)
+
 
     def _draw_frame(self, framedata, force_regenerate=False):
         global fft_data
+
         self.line.set_data(fft_data)
 
         max_frequency = max(fft_data[0][~numpy.isinf(fft_data[0])])
@@ -123,7 +149,7 @@ class HorizontalParameterSlider(QtWidgets.QHBoxLayout):
         self.key = parameter_key
         self.scale = scale
 
-        initial_value = parent_window.fft_parameters[self.key]
+        initial_value = parent_window.interferogram_parameters[self.key]
 
         self.slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
         self.slider.setValue(initial_value*scale)
@@ -141,7 +167,7 @@ class HorizontalParameterSlider(QtWidgets.QHBoxLayout):
     def updateSliderLabel(self):
         value = self.slider.value()
         self.label.setText(self.key+": "+str(value/self.scale))
-        self.parent_window.fft_parameters[self.key] = value/self.scale
+        self.parent_window.interferogram_parameters[self.key] = value/self.scale
 
 
 
@@ -149,27 +175,27 @@ class MainWindow(QtWidgets.QWidget):
 
     def __init__(self, parent=None, *args):
         super(QtWidgets.QWidget, self).__init__(*args)
-        self.fft_parameters = {"Step": 1, "Interval": 100, "Noise": 0}
+        self.interferogram_parameters = {"Pas": 2, "Plage": 200, "%Bruit": 0}
 
-        # The order of creation of these objects is important, some values must
+        # The order of creation of widgets is important, some values must
         # be initialized before others
-        self.step_slider = HorizontalParameterSlider(self, "Step", 1, 200, 10, scale=10)
-        self.interval_slider = HorizontalParameterSlider(self, "Interval", 50, 100, 5)
-        self.noise_slider = HorizontalParameterSlider(self, "Noise", 0, 100, 2, scale=100)
+        self.step_slider = HorizontalParameterSlider(self, "Pas", 5, 40, 5, scale=10)
+        self.interval_slider = HorizontalParameterSlider(self, "Plage", 200, 300, 5)
+        self.noise_slider = HorizontalParameterSlider(self, "%Bruit", 0, 100, 2, scale=100)
 
-        self.fft = FFTDynamicCanvas(self, figsize=(8, 4), dpi=100)
-        self.interferogram = InterferogramDynamicCanvas(self, figsize=(8, 4), dpi=100)
+        self.fft = FFTDynamicCanvas(self, figsize=(8, 6), dpi=100)
+        self.interferogram = InterferogramDynamicCanvas(self, figsize=(8, 6), dpi=100)
 
-        self.HeNesource_radio = QtWidgets.QRadioButton("HeNe source")
+        self.HeNesource_radio = QtWidgets.QRadioButton("Source HeNe")
         self.HeNesource_radio.toggled.connect(self.interferogram.generate_data)
         self.HeNesource_radio.toggle()
-        self.whitesource_radio = QtWidgets.QRadioButton("White source")
+        self.whitesource_radio = QtWidgets.QRadioButton("Source de lumière blanche")
         self.whitesource_radio.toggled.connect(self.interferogram.generate_data)
         self.radioLayout = QtWidgets.QHBoxLayout()
         self.radioLayout.addWidget(self.HeNesource_radio)
         self.radioLayout.addWidget(self.whitesource_radio)
 
-        refresh_data_button = QtWidgets.QPushButton("Generate new data")
+        refresh_data_button = QtWidgets.QPushButton("Générer de nouvelles données")
         refresh_data_button.clicked.connect(self.interferogram.generate_data)
 
         self.mainLayout = QtWidgets.QVBoxLayout()
@@ -184,7 +210,7 @@ class MainWindow(QtWidgets.QWidget):
 
         self.interferogram.generate_data()
         self.setLayout(self.mainLayout)
-        self.setWindowTitle("Effect of parameters on interferogram and its Fourier transform")
+        self.setWindowTitle("Effets des paramètres de l'interférogramme sur sa transformée de Fourier")
 
 app = QtWidgets.QApplication(sys.argv)
 window = MainWindow()
