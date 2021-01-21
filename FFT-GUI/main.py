@@ -50,7 +50,7 @@ class InterferogramDynamicCanvas(FigureCanvasQTAgg, TimedAnimation):
         ax.set_ylabel("Voltage [V]")
         self.line = Line2D([], [], color='#008080', ls='-', marker='o')
         ax.add_line(self.line)
-        ax.set_xlim(5, 105)
+        ax.set_xlim(0, 300)
         ax.set_ylim(0, 3)
 
         FigureCanvasQTAgg.__init__(self, self.fig)
@@ -65,10 +65,8 @@ class InterferogramDynamicCanvas(FigureCanvasQTAgg, TimedAnimation):
     def generate_data(self):
         current_interferogram_parameters = self.parent_window.interferogram_parameters
 
-        N = ceil(current_interferogram_parameters["Plage"]/current_interferogram_parameters["Pas"])
-
         generation_parameters = (0, current_interferogram_parameters["Plage"], 
-                N, current_interferogram_parameters["%Bruit"])
+                current_interferogram_parameters["Pas"], current_interferogram_parameters["%Bruit"])
 
         global interferogram_data
         if self.parent_window.HeNesource_radio.isChecked():
@@ -131,7 +129,7 @@ class FFTDynamicCanvas(FigureCanvasQTAgg, TimedAnimation):
         self.line.set_data(fft_data)
 
         max_frequency = max(fft_data[0][~numpy.isinf(fft_data[0])])
-        max_intensity = max(fft_data[1])
+        max_intensity = max(fft_data[1][~numpy.isinf(fft_data[0])])*1.05
         self.ax.set_xlim(-max_frequency, max_frequency)
         self.ax.set_ylim(0, max_intensity)
         self._drawn_artists = [self.line]
