@@ -62,11 +62,11 @@ sources_sliders = {
 
             "Pas": {
                 "unit"   : "µm",
-                "initial": 100,
-                "minimum": 50,
-                "maximum": 200,
-                "step"   : 10,
-                "scale"  : 100
+                "initial": 10,
+                "minimum": 5,
+                "maximum": 20,
+                "step"   : 1,
+                "scale"  : 10
             },
             "Plage": {
                 "unit"   : "µm",

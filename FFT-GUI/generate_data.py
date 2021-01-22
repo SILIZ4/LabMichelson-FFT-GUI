@@ -34,5 +34,5 @@ def generateWhiteLightInterferogram(xMin, xMax, dx, noise_level):
     k1 = 1/0.4
     k2 = 1/0.8
     y = 1+np.exp(-x*x/4)*(np.sin(2 * np.pi * (k1+k2)*x/2)/x * np.sin(2 * np.pi * (k1-k2)*x/2)+ noise)
-    y[x==0] = 0
+    y[x==0] = 1+noise[x==0]
     return x, y
