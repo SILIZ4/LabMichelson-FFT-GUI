@@ -27,9 +27,12 @@ def generateWhiteLightInterferogram(xMin, xMax, dx, noise_level):
     d'une source blanche visible. On ajoute du bruit pour rendre le tout
     plus realiste.
     """
-    x = np.arange(xMin, xMax+dx, dx) 
+    xMid = (xMax-xMin)/2
+    x = np.arange(xMin, xMax+dx, dx) - xMin - xMid
+
     noise = random(len(x))*noise_level
     k1 = 1/0.4
     k2 = 1/0.8
     y = 1+np.exp(-x*x/4)*(np.sin(2 * np.pi * (k1+k2)*x/2)/x * np.sin(2 * np.pi * (k1-k2)*x/2)+ noise)
-    return x,y
+    y[x==0] = 0
+    return x, y

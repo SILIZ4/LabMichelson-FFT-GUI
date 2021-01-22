@@ -25,14 +25,14 @@ class InterferogramDynamicCanvas(FigureCanvasQTAgg, TimedAnimation):
         self.parent_window = parent_window
 
         self.fig = Figure(**kwargs)
-        ax = self.fig.add_subplot(111)
+        self.ax = self.fig.add_subplot(111)
 
-        ax.set_xlabel("Position du miroir[µm]")
-        ax.set_ylabel("Voltage [V]")
+        self.ax.set_xlabel("Position du miroir[µm]")
+        self.ax.set_ylabel("Voltage [V]")
         self.line = Line2D([], [], color='#008080', ls='-', marker='o')
-        ax.add_line(self.line)
-        ax.set_xlim(0, 300)
-        ax.set_ylim(0, 3)
+        self.ax.add_line(self.line)
+        self.ax.set_xlim(0, 300)
+        self.ax.set_ylim(0, 3)
 
         FigureCanvasQTAgg.__init__(self, self.fig)
         TimedAnimation.__init__(self, self.fig, interval=100)
@@ -54,12 +54,12 @@ class InterferogramDynamicCanvas(FigureCanvasQTAgg, TimedAnimation):
                 current_interferogram_parameters["Pas"], current_interferogram_parameters["Bruit"])
 
         global interferogram_data
-        if self.parent_window.HeNesource_radio.isChecked():
+        if self.parent_window.source == "HeNe":
             interferogram_data = generate_data.generateHeNeInterferogram(*generation_parameters)
-        elif self.parent_window.whitesource_radio.isChecked(): 
+        elif self.parent_window.source == "WhiteLight":
             interferogram_data = generate_data.generateWhiteLightInterferogram(*generation_parameters)
         else:
-            raise ValueError("Unhandled error: one of the source type radio button is not handled")
+            raise ValueError("Unknown source type to generate data")
 
     def _draw_frame(self, framedata):
         global interferogram_data
@@ -70,6 +70,9 @@ class InterferogramDynamicCanvas(FigureCanvasQTAgg, TimedAnimation):
         lines = [self.line]
         for l in lines:
             l.set_data([], [])
+
+    def rescale_axis(self, limits):
+        self.ax.set_xlim(*limits)
 
 class FFTDynamicCanvas(FigureCanvasQTAgg, TimedAnimation):
     def __init__(self, parent_window, **kwargs):
@@ -106,7 +109,7 @@ class FFTDynamicCanvas(FigureCanvasQTAgg, TimedAnimation):
         self.line.set_data(fft_data)
 
         max_frequency = max(fft_data[0][~numpy.isinf(fft_data[0])])
-        max_intensity = max(fft_data[1][~numpy.isinf(fft_data[0])])*1.05
+        max_intensity = max(fft_data[1][~numpy.isinf(fft_data[0]) & ~numpy.isinf(fft_data[1])])*1.05
         self.ax.set_xlim(-max_frequency, max_frequency)
         self.ax.set_ylim(0, max_intensity)
         self._drawn_artists = [self.line]
@@ -198,25 +201,22 @@ class MainWindow(QtWidgets.QWidget):
         self.updateFigures()
 
     def updateAll(self):
+        self.updateSourceUsed()
         self.updateSlidersRanges()
         self.readSliderValues()
         self.updateFigures()
 
-    def initializeSlidersToHeNe(self):
-        self.source_config = cfg.sources_sliders["HeNe"]
-        for slider in self.parameter_sliders:
-            slider.changeSliderRange(self.source_config)
-
-    def updateSlidersRanges(self):
+    def updateSourceUsed(self):
         if self.HeNesource_radio.isChecked():
-            self.source_config = cfg.sources_sliders["HeNe"]
+            self.source = "HeNe"
         elif self.whitesource_radio.isChecked(): 
-            self.source_config = cfg.sources_sliders["WhiteLight"]
+            self.source = "WhiteLight"
         else:
             raise ValueError("Unhandled error: one of the source type radio button is not handled")
-        
+
+    def updateSlidersRanges(self):
         for slider in self.parameter_sliders:
-            slider.changeSliderRange(self.source_config)
+            slider.changeSliderRange(cfg.sources_sliders[self.source])
 
     def readSliderValues(self):
         self.interferogram_parameters = {
@@ -228,6 +228,7 @@ class MainWindow(QtWidgets.QWidget):
     def updateFigures(self):
         self.interferogram.generate_data()
         self.fft.compute_fft()
+        self.interferogram.rescale_axis(cfg.interferogram_xaxis_limits[self.source])
 
 
 app = QtWidgets.QApplication(sys.argv)

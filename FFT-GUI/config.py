@@ -20,6 +20,16 @@ rcParams["legend.fontsize"] = 10
 rcParams["text.color"] = darkblack
 
 
+interferogram_xaxis_limits = {
+        "HeNe": [0, 300],
+        "WhiteLight": [-50, 50]
+    }
+fft_xaxis_limits =  {
+        "HeNe": [-5000, 5000],
+        "WhiteLight": [-5000, 5000]
+    }
+
+
 sources_sliders = {
         "HeNe": {
 
@@ -36,6 +46,33 @@ sources_sliders = {
                 "initial": 250,
                 "minimum": 200,
                 "maximum": 300,
+                "step"   : 5,
+                "scale"  : 1
+            },
+            "Bruit": {
+                "unit"   : "%",
+                "initial": 5,
+                "minimum": 0,
+                "maximum": 100,
+                "step"   : 1,
+                "scale"  : 10
+            }
+        }, 
+        "WhiteLight": {
+
+            "Pas": {
+                "unit"   : "µm",
+                "initial": 100,
+                "minimum": 50,
+                "maximum": 200,
+                "step"   : 10,
+                "scale"  : 100
+            },
+            "Plage": {
+                "unit"   : "µm",
+                "initial": 250,
+                "minimum": 40,
+                "maximum": 100,
                 "step"   : 5,
                 "scale"  : 1
             },
