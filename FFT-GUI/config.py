@@ -24,9 +24,18 @@ interferogram_xaxis_limits = {
         "HeNe": [0, 300],
         "WhiteLight": [-50, 50]
     }
+zoomed_interferogram_xaxis_limits = {
+        "HeNe": [0, 5],
+        "WhiteLight": [-3, 3]
+    }
+
 fft_xaxis_limits =  {
         "HeNe": [-1000, 1000],
-        "WhiteLight": [-1000, 1000]
+        "WhiteLight": [-2000, 2000]
+    }
+zoomed_fft_xaxis_limits =  {
+        "HeNe": [620, 650],
+        "WhiteLight": [200, 1000]
     }
 
 
@@ -40,7 +49,8 @@ fft_xaxis_limits =  {
 # real numbers.
 # Example: value=5 and scale=100 gives a real value of 5/100=0.05
 #
-# The signal to noise ratio (SNR) is a logarithmic 10 scale.
+# The signal to noise ratio (SNR) is based on a logarithmic scale. The power
+# of the logarithm base is set by the "base" parameter in the SNR configuration.
 sources_sliders = {
         "HeNe": {
 
@@ -62,9 +72,11 @@ sources_sliders = {
             },
             "SNR": {
                 "unit"   : "-",
-                "initial": 2,
-                "minimum": 0,
-                "maximum": 4,
+                "base"   : 2,
+
+                "initial": 8,
+                "minimum": 4,
+                "maximum": 14,
                 "step"   : 1,
                 "scale"  : 1
             }
@@ -89,9 +101,11 @@ sources_sliders = {
             },
             "SNR": {
                 "unit"   : "-",
-                "initial": 3,
-                "minimum": 0,
-                "maximum": 4,
+                "base"   : 2,
+
+                "initial": 8,
+                "minimum": 4,
+                "maximum": 16,
                 "step"   : 1,
                 "scale"  : 1
             }

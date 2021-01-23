@@ -17,9 +17,9 @@ def generateHeNeInterferogram(xMin, xMax, dx, snr):
     snr.
     """
     x = np.arange(xMin, xMax+dx, dx) 
-    y = 1+np.cos(2 * np.pi / 0.6328 * x)
+    y = np.cos(2 * np.pi / 0.6328 * x)
 
-    return x, stats.norm.rvs(size=len(y), loc=y, scale=y/snr)
+    return x, stats.norm.rvs(size=len(y), loc=y, scale=abs(y)/snr)
 
 def generateWhiteLightInterferogram(xMin, xMax, dx, snr):
     """ Genere un tableau de valeurs equidistantes entre xMin et xMax et
@@ -32,7 +32,7 @@ def generateWhiteLightInterferogram(xMin, xMax, dx, snr):
 
     k1 = 1/0.4
     k2 = 1/0.8
-    y = 1+np.exp(-x*x/4)*(np.sin(2 * np.pi * (k1+k2)*x/2)/x * np.sin(2 * np.pi * (k1-k2)*x/2))
+    y = 1 + np.exp(-x*x/4)*(np.sin(2*np.pi * (k1+k2)*x/2)/x * np.sin(2 * np.pi * (k1-k2)*x/2))
     y[x==0] = 1
 
     return x, stats.norm.rvs(size=len(y), loc=y, scale=abs(y)/snr)

@@ -25,13 +25,22 @@ class InterferogramDynamicCanvas(FigureCanvasQTAgg, TimedAnimation):
         self.parent_window = parent_window
 
         self.fig = Figure(**kwargs)
-        self.ax = self.fig.add_subplot(111)
+
+        self.ax = matplotlib.pyplot.subplot2grid((1, 3), (0, 0), colspan=2, fig=self.fig)
+        self.zoomed_ax = matplotlib.pyplot.subplot2grid((1, 3), (0, 2), fig=self.fig)
+        self.zoomed_ax.set_yticklabels([])
 
         self.ax.set_xlabel("Position du miroir[µm]")
+        self.zoomed_ax.set_xlabel("Position du miroir[µm]")
         self.ax.set_ylabel("Voltage normalisé [-]")
+
         self.line = Line2D([], [], color='#008080', ls='-')
         self.ax.add_line(self.line)
-        self.ax.set_ylim(0, 1)
+        self.line_copy = Line2D([], [], color='#008080', ls='-', markersize=3, marker='o')
+        self.zoomed_ax.add_line(self.line_copy)
+
+        self.ax.set_ylim(-1, 1)
+        self.zoomed_ax.set_ylim(-1, 1)
 
         FigureCanvasQTAgg.__init__(self, self.fig)
         TimedAnimation.__init__(self, self.fig, interval=100)
@@ -67,27 +76,37 @@ class InterferogramDynamicCanvas(FigureCanvasQTAgg, TimedAnimation):
     def _draw_frame(self, framedata):
         global interferogram_data
         self.line.set_data(interferogram_data)
-        self._drawn_artists = [self.line]
+        self.line_copy.set_data(interferogram_data)
+        self._drawn_artists = [self.line, self.line_copy]
 
     def _init_draw(self):
-        lines = [self.line]
+        lines = [self.line, self.line_copy]
         for l in lines:
             l.set_data([], [])
 
-    def rescale_axis(self, limits):
+    def rescale_axis(self, limits, zoomed_limits):
         self.ax.set_xlim(*limits)
+        self.zoomed_ax.set_xlim(*zoomed_limits)
 
 class FFTDynamicCanvas(FigureCanvasQTAgg, TimedAnimation):
     def __init__(self, parent_window, **kwargs):
         self.fig = Figure(**kwargs)
-        self.ax = self.fig.add_subplot(111)
+
+        self.ax = matplotlib.pyplot.subplot2grid((1, 3), (0, 0), colspan=2, fig=self.fig)
+        self.zoomed_ax = matplotlib.pyplot.subplot2grid((1, 3), (0, 2), fig=self.fig)
+        self.zoomed_ax.set_yticklabels([])
 
         self.ax.set_xlabel("Longueur d'onde [nm]")
+        self.zoomed_ax.set_xlabel("Longueur d'onde [nm]")
         self.ax.set_ylabel("Intensité")
-        self.line = Line2D([], [], color='#008080', ls='-', marker='o')
+
+        self.line = Line2D([], [], color='#008080', ls='-')
         self.ax.add_line(self.line)
-        self.ax.set_xlim(0, 100)
+        self.line_copy = Line2D([], [], color='#008080', ls='-', markersize=3, marker='o')
+        self.zoomed_ax.add_line(self.line_copy)
+
         self.ax.set_ylim(0, 1)
+        self.zoomed_ax.set_ylim(0, 1)
 
         FigureCanvasQTAgg.__init__(self, self.fig)
         TimedAnimation.__init__(self, self.fig, interval=100)
@@ -110,19 +129,22 @@ class FFTDynamicCanvas(FigureCanvasQTAgg, TimedAnimation):
         global fft_data
 
         self.line.set_data(fft_data)
+        self.line_copy.set_data(fft_data)
 
         max_frequency = max(fft_data[0][~numpy.isinf(fft_data[0])])
         max_intensity = max(fft_data[1][~numpy.isinf(fft_data[0]) & ~numpy.isinf(fft_data[1])])*1.05
         self.ax.set_ylim(0, max_intensity)
-        self._drawn_artists = [self.line]
+        self.zoomed_ax.set_ylim(0, max_intensity)
+        self._drawn_artists = [self.line, self.line_copy]
 
     def _init_draw(self):
-        lines = [self.line]
+        lines = [self.line, self.line_copy]
         for l in lines:
             l.set_data([], [])
 
-    def rescale_axis(self, limits):
+    def rescale_axis(self, limits, zoomed_limits):
         self.ax.set_xlim(*limits)
+        self.zoomed_ax.set_xlim(*zoomed_limits)
 
 class HorizontalParameterSlider(QtWidgets.QHBoxLayout):
     def __init__(self, parent_window, parameter_key, *args):
@@ -131,6 +153,7 @@ class HorizontalParameterSlider(QtWidgets.QHBoxLayout):
         self.parent_window = parent_window
         self.key = parameter_key
         self.scale = 1
+        self.base = 1
 
         self.slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
         self.slider.valueChanged.connect(parent_window.readSliderValues)
@@ -156,9 +179,13 @@ class HorizontalParameterSlider(QtWidgets.QHBoxLayout):
         self.label.setText("{} [{}]: {}".format(self.key, self.unit, value/self.scale))
 
 class HorizontalLogarithmicParameterSlider(HorizontalParameterSlider):
+    def changeSliderRange(self, slider_config):
+        super().changeSliderRange(slider_config)
+        self.base = slider_config[self.key]["base"]
+
     def updateSliderLabel(self):
         value = self.slider.value()
-        self.label.setText("{} [{}]: {}".format(self.key, self.unit, 10**value))
+        self.label.setText("{} [{}]: {}".format(self.key, self.unit, int(self.base**(value/self.scale))))
 
 
 class MainWindow(QtWidgets.QWidget):
@@ -179,8 +206,8 @@ class MainWindow(QtWidgets.QWidget):
         self.interferogram = InterferogramDynamicCanvas(self, figsize=(8, 6), dpi=100)
 
         self.HeNesource_radio = QtWidgets.QRadioButton("Source HeNe")
-        self.HeNesource_radio.toggled.connect(self.updateAll)
         self.HeNesource_radio.toggle()
+        self.HeNesource_radio.toggled.connect(self.updateAll)
         self.whitesource_radio = QtWidgets.QRadioButton("Source de lumière blanche")
         self.whitesource_radio.toggled.connect(self.updateAll)
         self.radioLayout = QtWidgets.QHBoxLayout()
@@ -204,6 +231,7 @@ class MainWindow(QtWidgets.QWidget):
         self.setWindowTitle("Effets des paramètres de l'interférogramme sur sa transformée de Fourier")
 
 
+        self.updateSourceUsed()
         self.updateSlidersRanges()
         self.readSliderValues()
 
@@ -235,14 +263,14 @@ class MainWindow(QtWidgets.QWidget):
         self.interferogram_parameters = {
                 "Pas": self.step_slider.slider.value()/self.step_slider.scale,
                 "Plage": self.interval_slider.slider.value()/self.interval_slider.scale,
-                "SNR": 10**self.noise_slider.slider.value()
+                "SNR": int(self.noise_slider.base**(self.noise_slider.slider.value()/self.noise_slider.scale))
             }
 
     def updateFigures(self):
         self.interferogram.generate_data()
         self.fft.compute_fft()
-        self.interferogram.rescale_axis(cfg.interferogram_xaxis_limits[self.source])
-        self.fft.rescale_axis(cfg.fft_xaxis_limits[self.source])
+        self.interferogram.rescale_axis(cfg.interferogram_xaxis_limits[self.source], cfg.zoomed_interferogram_xaxis_limits[self.source])
+        self.fft.rescale_axis(cfg.fft_xaxis_limits[self.source], cfg.zoomed_fft_xaxis_limits[self.source])
 
 
 app = QtWidgets.QApplication(sys.argv)
