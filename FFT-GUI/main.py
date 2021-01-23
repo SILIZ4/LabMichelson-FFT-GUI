@@ -28,11 +28,10 @@ class InterferogramDynamicCanvas(FigureCanvasQTAgg, TimedAnimation):
         self.ax = self.fig.add_subplot(111)
 
         self.ax.set_xlabel("Position du miroir[µm]")
-        self.ax.set_ylabel("Voltage [V]")
-        self.line = Line2D([], [], color='#008080', ls='-', marker='o')
+        self.ax.set_ylabel("Voltage normalisé [-]")
+        self.line = Line2D([], [], color='#008080', ls='-')
         self.ax.add_line(self.line)
-        self.ax.set_xlim(0, 300)
-        self.ax.set_ylim(0, 3)
+        self.ax.set_ylim(0, 1)
 
         FigureCanvasQTAgg.__init__(self, self.fig)
         TimedAnimation.__init__(self, self.fig, interval=100)
@@ -51,7 +50,9 @@ class InterferogramDynamicCanvas(FigureCanvasQTAgg, TimedAnimation):
         current_interferogram_parameters = self.parent_window.interferogram_parameters
 
         generation_parameters = (0, current_interferogram_parameters["Plage"], 
-                current_interferogram_parameters["Pas"], current_interferogram_parameters["Bruit"])
+                current_interferogram_parameters["Pas"], 
+                current_interferogram_parameters["SNR"]/100  # Noise is in %
+                )
 
         global interferogram_data
         if self.parent_window.source == "HeNe":
@@ -60,6 +61,8 @@ class InterferogramDynamicCanvas(FigureCanvasQTAgg, TimedAnimation):
             interferogram_data = generate_data.generateWhiteLightInterferogram(*generation_parameters)
         else:
             raise ValueError("Unknown source type to generate data")
+
+        interferogram_data = interferogram_data[0], interferogram_data[1]/max(interferogram_data[1])
 
     def _draw_frame(self, framedata):
         global interferogram_data
@@ -110,7 +113,6 @@ class FFTDynamicCanvas(FigureCanvasQTAgg, TimedAnimation):
 
         max_frequency = max(fft_data[0][~numpy.isinf(fft_data[0])])
         max_intensity = max(fft_data[1][~numpy.isinf(fft_data[0]) & ~numpy.isinf(fft_data[1])])*1.05
-        self.ax.set_xlim(-max_frequency, max_frequency)
         self.ax.set_ylim(0, max_intensity)
         self._drawn_artists = [self.line]
 
@@ -118,6 +120,9 @@ class FFTDynamicCanvas(FigureCanvasQTAgg, TimedAnimation):
         lines = [self.line]
         for l in lines:
             l.set_data([], [])
+
+    def rescale_axis(self, limits):
+        self.ax.set_xlim(*limits)
 
 class HorizontalParameterSlider(QtWidgets.QHBoxLayout):
     def __init__(self, parent_window, parameter_key, *args):
@@ -150,6 +155,11 @@ class HorizontalParameterSlider(QtWidgets.QHBoxLayout):
         value = self.slider.value()
         self.label.setText("{} [{}]: {}".format(self.key, self.unit, value/self.scale))
 
+class HorizontalLogarithmicParameterSlider(HorizontalParameterSlider):
+    def updateSliderLabel(self):
+        value = self.slider.value()
+        self.label.setText("{} [{}]: {}".format(self.key, self.unit, 10**value))
+
 
 class MainWindow(QtWidgets.QWidget):
 
@@ -162,7 +172,7 @@ class MainWindow(QtWidgets.QWidget):
         # be initialized before others
         self.step_slider = HorizontalParameterSlider(self, "Pas")
         self.interval_slider = HorizontalParameterSlider(self, "Plage")
-        self.noise_slider = HorizontalParameterSlider(self, "Bruit")
+        self.noise_slider = HorizontalLogarithmicParameterSlider(self, "SNR")
         self.parameter_sliders = [self.step_slider, self.interval_slider, self.noise_slider]
 
         self.fft = FFTDynamicCanvas(self, figsize=(8, 6), dpi=100)
@@ -200,6 +210,9 @@ class MainWindow(QtWidgets.QWidget):
         block_generation = False
         self.updateFigures()
 
+        for slider in self.parameter_sliders:
+            slider.updateSliderLabel()
+
     def updateAll(self):
         self.updateSourceUsed()
         self.updateSlidersRanges()
@@ -222,13 +235,14 @@ class MainWindow(QtWidgets.QWidget):
         self.interferogram_parameters = {
                 "Pas": self.step_slider.slider.value()/self.step_slider.scale,
                 "Plage": self.interval_slider.slider.value()/self.interval_slider.scale,
-                "Bruit": self.noise_slider.slider.value()/self.noise_slider.scale
+                "SNR": 10**self.noise_slider.slider.value()
             }
 
     def updateFigures(self):
         self.interferogram.generate_data()
         self.fft.compute_fft()
         self.interferogram.rescale_axis(cfg.interferogram_xaxis_limits[self.source])
+        self.fft.rescale_axis(cfg.fft_xaxis_limits[self.source])
 
 
 app = QtWidgets.QApplication(sys.argv)

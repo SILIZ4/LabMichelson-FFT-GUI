@@ -1,6 +1,6 @@
 from matplotlib import rcParams
 
-
+# Matplotlib figures configuration
 darkblack = "#1a1a1a"
 midblack ="#3d3d3d"
 lightgray = "#ababab"
@@ -25,21 +25,32 @@ interferogram_xaxis_limits = {
         "WhiteLight": [-50, 50]
     }
 fft_xaxis_limits =  {
-        "HeNe": [-5000, 5000],
-        "WhiteLight": [-5000, 5000]
+        "HeNe": [-1000, 1000],
+        "WhiteLight": [-1000, 1000]
     }
 
 
+# The dictionary "sources_sliders" sets up slider of each parameter in the
+# interface. The intial value are set at the start of the program and each time
+# the source is changed.
+#
+# The slider widget in Qt uses integers. The parameter "scale" is provided to
+# allow the use of real numbers. The sliders values are divided by this scaling
+# parameter such that the values displayed and used in the computations are
+# real numbers.
+# Example: value=5 and scale=100 gives a real value of 5/100=0.05
+#
+# The signal to noise ratio (SNR) is a logarithmic 10 scale.
 sources_sliders = {
         "HeNe": {
 
             "Pas": {
                 "unit"   : "µm",
-                "initial": 20,
-                "minimum": 5,
+                "initial": 1,
+                "minimum": 1,
                 "maximum": 40,
-                "step"   : 5,
-                "scale"  : 10
+                "step"   : 1,
+                "scale"  : 100
             },
             "Plage": {
                 "unit"   : "µm",
@@ -49,40 +60,40 @@ sources_sliders = {
                 "step"   : 5,
                 "scale"  : 1
             },
-            "Bruit": {
-                "unit"   : "%",
-                "initial": 5,
+            "SNR": {
+                "unit"   : "-",
+                "initial": 2,
                 "minimum": 0,
-                "maximum": 100,
+                "maximum": 4,
                 "step"   : 1,
-                "scale"  : 10
+                "scale"  : 1
             }
         }, 
         "WhiteLight": {
 
             "Pas": {
                 "unit"   : "µm",
-                "initial": 10,
-                "minimum": 5,
-                "maximum": 20,
+                "initial": 1,
+                "minimum": 1,
+                "maximum": 40,
                 "step"   : 1,
-                "scale"  : 10
+                "scale"  : 100
             },
             "Plage": {
                 "unit"   : "µm",
-                "initial": 250,
-                "minimum": 40,
+                "initial": 60,
+                "minimum": 10,
                 "maximum": 100,
                 "step"   : 5,
                 "scale"  : 1
             },
-            "Bruit": {
-                "unit"   : "%",
-                "initial": 5,
+            "SNR": {
+                "unit"   : "-",
+                "initial": 3,
                 "minimum": 0,
-                "maximum": 100,
+                "maximum": 4,
                 "step"   : 1,
-                "scale"  : 10
+                "scale"  : 1
             }
         }
     }
