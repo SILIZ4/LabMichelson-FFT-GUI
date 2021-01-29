@@ -91,6 +91,7 @@ class ExperimentalSetupConfiguration(QtWidgets.QVBoxLayout):
         radio_buttons_layout = QtWidgets.QVBoxLayout()
         radio_buttons_layout.addWidget(self.append_widget(QtWidgets.QRadioButton("Avancer")))
         radio_buttons_layout.addWidget(self.append_widget(QtWidgets.QRadioButton("Reculer")))
+        radio_buttons_layout.addItem(QtWidgets.QSpacerItem(1, 10))
 
         self.optimize_checkbox = QtWidgets.QCheckBox("Optimiser le moyennage")
         self.optimize_checkbox.stateChanged.connect(self.toggleAverageTextBoxVisibility)
@@ -99,11 +100,13 @@ class ExperimentalSetupConfiguration(QtWidgets.QVBoxLayout):
         labels_layout = QtWidgets.QVBoxLayout()
         labels_layout.addWidget(QtWidgets.QLabel("Longueur d'un déplacement"))
         labels_layout.addWidget(QtWidgets.QLabel("Délai entre chaque déplacement"))
+        labels_layout.addItem(QtWidgets.QSpacerItem(1, 10))
         labels_layout.addWidget(QtWidgets.QLabel("Nombre de mesures par donnée"))
 
         text_box_layout = QtWidgets.QVBoxLayout()
         text_box_layout.addLayout(self.append_layouts_widgets(RealValuesTextBoxLayout("µm")))
         text_box_layout.addLayout(self.append_layouts_widgets(RealValuesTextBoxLayout("s")))
+        text_box_layout.addItem(QtWidgets.QSpacerItem(1, 10))
         self.average_number_textbox = RealValuesTextBox(True, 0, 10, 0)
         text_box_layout.addWidget(self.append_widget(self.average_number_textbox), 2)
 
@@ -136,11 +139,13 @@ class DataCollection(QtWidgets.QVBoxLayout):
         self.addWidget(InterferogramDynamicCanvas())
 
         button_layout = QtWidgets.QHBoxLayout()
-        collect_data_button = QtWidgets.QPushButton("Acquérir des données")
-        collect_data_button.pressed.connect(window_parent.enable_all_widgets_toggle)
-        button_layout.addWidget(collect_data_button)
+        self.collect_data_button = QtWidgets.QPushButton("Acquérir des données")
+        self.collect_data_button.pressed.connect(window_parent.enable_all_widgets_toggle)
+        self.collect_data_button.pressed.connect(self.change_text)
+        self.collecting_data = False
+        button_layout.addWidget(self.collect_data_button)
 
-        save_button = QtWidgets.QPushButton("Enregistrer")
+        save_button = QtWidgets.QPushButton("Enregistrer sous")
         save_button.pressed.connect(self.save_data)
         self.widgets.append(save_button)
         button_layout.addWidget(save_button)
@@ -151,6 +156,14 @@ class DataCollection(QtWidgets.QVBoxLayout):
     def save_data(self, directory='', forOpen=True, fmt='', isFolder=False):
         self.file_path = QtWidgets.QFileDialog.getSaveFileName(parent=None,
                 caption="Choisissez un emplacement pour les données", directory=os.getcwd())
+
+    def change_text(self):
+        self.collecting_data = not self.collecting_data
+        if self.collecting_data:
+            text = "Arrêter l'acquisition"
+        else:
+            text = "Acquérir des données"
+        self.collect_data_button.setText(text)
 
 
 class InterferogramDynamicCanvas(FigureCanvasQTAgg):
