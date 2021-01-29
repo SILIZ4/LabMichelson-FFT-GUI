@@ -1,6 +1,8 @@
-import sys
+import sys, os
 import matplotlib
 import numpy
+import subprocess
+import datetime
 from math import ceil
 matplotlib.use('Qt5Agg')
 
@@ -77,7 +79,10 @@ class ExperimentalSetupConfiguration(QtWidgets.QVBoxLayout):
         radio_buttons_layout = QtWidgets.QVBoxLayout()
         radio_buttons_layout.addWidget(QtWidgets.QRadioButton("Avancer"))
         radio_buttons_layout.addWidget(QtWidgets.QRadioButton("Reculer"))
-        radio_buttons_layout.addWidget(QtWidgets.QCheckBox("Optimiser le moyennage"))
+
+        self.optimize_checkbox = QtWidgets.QCheckBox("Optimiser le moyennage")
+        self.optimize_checkbox.stateChanged.connect(self.toggleAverageTextBoxVisibility)
+        radio_buttons_layout.addWidget(self.optimize_checkbox)
 
         labels_layout = QtWidgets.QVBoxLayout()
         labels_layout.addWidget(QtWidgets.QLabel("Longueur d'un déplacement"))
@@ -87,7 +92,8 @@ class ExperimentalSetupConfiguration(QtWidgets.QVBoxLayout):
         text_box_layout = QtWidgets.QVBoxLayout()
         text_box_layout.addLayout(RealValuesTextBoxLayout("µm"))
         text_box_layout.addLayout(RealValuesTextBoxLayout("s"))
-        text_box_layout.addWidget(RealValuesTextBox(True, 0, 10, 0), 2)
+        self.average_number_textbox = RealValuesTextBox(True, 0, 10, 0)
+        text_box_layout.addWidget(self.average_number_textbox, 2)
 
         move_controls = QtWidgets.QHBoxLayout()
         move_controls.addLayout(radio_buttons_layout, 1)
@@ -97,6 +103,9 @@ class ExperimentalSetupConfiguration(QtWidgets.QVBoxLayout):
 
         self.addLayout(move_controls)
 
+    def toggleAverageTextBoxVisibility(self):
+        self.average_number_textbox.setEnabled(not self.optimize_checkbox.isChecked())
+    
 
 class DataCollection(QtWidgets.QVBoxLayout):
     def __init__(self, *args):
@@ -105,9 +114,16 @@ class DataCollection(QtWidgets.QVBoxLayout):
         self.addWidget(InterferogramDynamicCanvas())
         button_layout = QtWidgets.QHBoxLayout()
         button_layout.addWidget(QtWidgets.QPushButton("Acquérir des données"))
-        button_layout.addWidget(QtWidgets.QPushButton("Enregistrer"))
+        save_button = QtWidgets.QPushButton("Enregistrer")
+        save_button.pressed.connect(self.save_data)
+        button_layout.addWidget(save_button)
         button_layout.setSpacing(20)
         self.addLayout(button_layout)
+
+    def save_data(self, directory='', forOpen=True, fmt='', isFolder=False):
+        self.file_path = QtWidgets.QFileDialog.getSaveFileName(parent=None,
+                caption="Choisissez un emplacement pour les données", directory=os.getcwd())
+
 
 class InterferogramDynamicCanvas(FigureCanvasQTAgg):
     def __init__(self, **kwargs):
