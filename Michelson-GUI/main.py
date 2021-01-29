@@ -11,13 +11,15 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
 from matplotlib.lines import Line2D
 
+import config
+
 
 class RealValuesTextBox(QtWidgets.QLineEdit):
-    def __init__(self, editable=True, minimum=1, maximum=100, *args):
+    def __init__(self, editable=True, minimum=1, maximum=100, decimals=2, *args):
         super(QtWidgets.QLineEdit, self).__init__(*args)
 
         self.setMaximumWidth(100)
-        validator = QtGui.QDoubleValidator(decimals=2, notation=0)
+        validator = QtGui.QDoubleValidator(decimals=decimals, notation=0)
         validator.setRange(minimum, maximum)
         self.setValidator(validator)
         self.setMinimumHeight(15)
@@ -45,43 +47,55 @@ class ExperimentalSetupInformation(QtWidgets.QHBoxLayout):
                 label = "Vis"
             elif i == 3:
                 label = "Miroir"
-            col.addWidget(QtWidgets.QLabel(label))
+            label = QtWidgets.QLabel(label)
+            label.setAlignment(QtCore.Qt.AlignCenter)
+            col.addWidget(label)
 
-        for i, name in enumerate(["Position absolue:", "Position relative:", "Facteur de calibration:"]):
+        for i, name in enumerate(["Position absolue:", "Position relative:"]):
             cols[0].addWidget(QtWidgets.QLabel(name), 1)
             cols[1].addWidget(RealValuesTextBox(editable=False), 2)
             cols[2].addWidget(QtWidgets.QLabel("µm"))
+            cols[3].addWidget(RealValuesTextBox(editable=False), 2)
+            cols[4].addWidget(QtWidgets.QLabel("µm"))
 
-            if name != "Facteur de calibration:":
-                cols[3].addWidget(RealValuesTextBox(editable=False), 2)
-                cols[4].addWidget(QtWidgets.QLabel("µm"))
-            else:
-                cols[3].addWidget(QtWidgets.QLabel(""), 2)
-                cols[4].addWidget(QtWidgets.QLabel(""))
+        cols[0].addWidget(QtWidgets.QLabel("Facteur de calibration:"), 1)
+        cols[1].addWidget(RealValuesTextBox(editable=True), 2)
+        cols[2].addWidget(QtWidgets.QLabel(""))
+        cols[3].addWidget(QtWidgets.QLabel(""), 2)
+        cols[4].addWidget(QtWidgets.QLabel(""))
 
         for col in cols:
             self.addLayout(col)
 
+        self.addWidget(QtWidgets.QPushButton("Remettre position relative à 0"))
 
-class ExperimentalSetupConfiguration(QtWidgets.QHBoxLayout):
+
+class ExperimentalSetupConfiguration(QtWidgets.QVBoxLayout):
     def __init__(self, *args):
-        super(QtWidgets.QHBoxLayout, self).__init__(*args)
+        super(QtWidgets.QVBoxLayout, self).__init__(*args)
 
         radio_buttons_layout = QtWidgets.QVBoxLayout()
         radio_buttons_layout.addWidget(QtWidgets.QRadioButton("Avancer"))
         radio_buttons_layout.addWidget(QtWidgets.QRadioButton("Reculer"))
+        radio_buttons_layout.addWidget(QtWidgets.QCheckBox("Optimiser le moyennage"))
 
         labels_layout = QtWidgets.QVBoxLayout()
-        labels_layout.addWidget(QtWidgets.QLabel("Longueur d'un pas"))
-        labels_layout.addWidget(QtWidgets.QLabel("Délai entre chaque pas"))
+        labels_layout.addWidget(QtWidgets.QLabel("Longueur d'un déplacement"))
+        labels_layout.addWidget(QtWidgets.QLabel("Délai entre chaque déplacement"))
+        labels_layout.addWidget(QtWidgets.QLabel("Nombre de mesures par donnée"))
 
         text_box_layout = QtWidgets.QVBoxLayout()
-        text_box_layout.addLayout(RealValuesTextBoxLayout("micro-pas"))
+        text_box_layout.addLayout(RealValuesTextBoxLayout("µm"))
         text_box_layout.addLayout(RealValuesTextBoxLayout("s"))
+        text_box_layout.addWidget(RealValuesTextBox(True, 0, 10, 0), 2)
 
-        self.addLayout(radio_buttons_layout, 1)
-        self.addLayout(labels_layout)
-        self.addLayout(text_box_layout, 1)
+        move_controls = QtWidgets.QHBoxLayout()
+        move_controls.addLayout(radio_buttons_layout, 1)
+        move_controls.addLayout(labels_layout)
+        move_controls.addLayout(text_box_layout, 1)
+
+
+        self.addLayout(move_controls)
 
 
 class DataCollection(QtWidgets.QVBoxLayout):
@@ -112,7 +126,7 @@ class InterferogramDynamicCanvas(FigureCanvasQTAgg):
         FigureCanvasQTAgg.__init__(self, self.fig)
         self.fig.suptitle("Interférogramme")
         self.fig.tight_layout()
-        self.fig.subplots_adjust(top=0.85, bottom=0.25)
+        self.fig.subplots_adjust(top=0.85, bottom=0.2)
 
 
     def _draw_frame(self, framedata):
