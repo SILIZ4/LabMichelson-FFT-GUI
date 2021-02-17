@@ -31,7 +31,6 @@ class InterferogramDynamicCanvas(FigureCanvasQTAgg):
 
         self.ax = matplotlib.pyplot.subplot2grid((1, 3), (0, 0), colspan=2, fig=self.fig)
         self.zoomed_ax = matplotlib.pyplot.subplot2grid((1, 3), (0, 2), fig=self.fig)
-        self.zoomed_ax.set_yticklabels([])
 
         self.ax.set_xlabel("Position du miroir[µm]")
         self.ax.set_ylabel("Voltage normalisé [-]")
@@ -79,6 +78,14 @@ class InterferogramDynamicCanvas(FigureCanvasQTAgg):
             raise ValueError("Unknown source type to generate data")
 
         interferogram_data = interferogram_data[0], interferogram_data[1]/max(interferogram_data[1])
+        current_xlim = self.zoomed_ax.get_xlim()
+        data_in_zoom = interferogram_data[1] [
+                    (interferogram_data[0]>=current_xlim[0]) & (interferogram_data[0]<=current_xlim[1])
+                ]
+        zoom_ymin, zoom_ymax = min(data_in_zoom), max(data_in_zoom)
+        self.zoomed_ax.set_ylim(zoom_ymin, zoom_ymax)
+        self.rectangle.set_xy((self.rectangle.get_xy()[0], zoom_ymin))
+        self.rectangle.set_height(zoom_ymax-zoom_ymin)
 
     def draw_frame(self):
         global interferogram_data
@@ -89,7 +96,7 @@ class InterferogramDynamicCanvas(FigureCanvasQTAgg):
         self.fig.canvas.flush_events()
 
     def rescale_axis(self, limits, zoomed_limits):
-        self.rectangle.set_xy((zoomed_limits[0], -1))
+        self.rectangle.set_xy((zoomed_limits[0], self.rectangle.get_xy()[1]))
         self.rectangle.set_width(zoomed_limits[1]-zoomed_limits[0])
         self.ax.set_xlim(*limits)
         self.zoomed_ax.set_xlim(*zoomed_limits)
@@ -168,11 +175,21 @@ class FFTDynamicCanvas(FigureCanvasQTAgg):
         self.zoomed_ax.set_ylim(0, max_intensity)
         self.rectangle.set_height(max_intensity)
 
+        current_xlim = self.zoomed_ax.get_xlim()
+        data_in_zoom = fft_data[1] [
+                    (fft_data[0]>=current_xlim[0]) & (fft_data[0]<=current_xlim[1])
+                ]
+        zoom_ymin, zoom_ymax = min(data_in_zoom), max(data_in_zoom)
+        self.zoomed_ax.set_ylim(zoom_ymin, zoom_ymax)
+        self.rectangle.set_xy((self.rectangle.get_xy()[0], zoom_ymin))
+        self.rectangle.set_height(zoom_ymax-zoom_ymin)
+
+
         self.fig.canvas.draw()
         self.fig.canvas.flush_events()
 
     def rescale_axis(self, limits, zoomed_limits):
-        self.rectangle.set_xy((zoomed_limits[0], -1))
+        self.rectangle.set_xy((zoomed_limits[0], self.rectangle.get_xy()[1]))
         self.rectangle.set_width(zoomed_limits[1]-zoomed_limits[0])
         self.ax.set_xlim(*limits)
         self.zoomed_ax.set_xlim(*zoomed_limits)
