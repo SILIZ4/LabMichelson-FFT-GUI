@@ -3,6 +3,7 @@ matplotlib.use('Qt5Agg')
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
 from matplotlib.lines import Line2D
+from matplotlib.patches import Rectangle
 import numpy
 
 from PyQt5 import QtCore, QtWidgets
@@ -19,6 +20,8 @@ fft_axis_k = []
 fft_axis_frequencies = []
 block_generation = False
 
+teal = "#008080"
+zoomed_color = "#1a1a1a"
 
 class InterferogramDynamicCanvas(FigureCanvasQTAgg):
     def __init__(self, parent_window, **kwargs):
@@ -31,12 +34,20 @@ class InterferogramDynamicCanvas(FigureCanvasQTAgg):
         self.zoomed_ax.set_yticklabels([])
 
         self.ax.set_xlabel("Position du miroir[µm]")
-        self.zoomed_ax.set_xlabel("Position du miroir[µm]")
         self.ax.set_ylabel("Voltage normalisé [-]")
+        self.zoomed_ax.set_xlabel("Position du miroir[µm]")
 
-        self.line = Line2D([], [], color='#008080', ls='-')
+        self.rectangle = Rectangle((0,0), width=1, height=2,
+                alpha=1, fill=False, ec=zoomed_color, lw=2, ls='--', zorder=4)
+        for child in self.zoomed_ax.get_children():
+            if isinstance(child, matplotlib.spines.Spine):
+                child.set_color(zoomed_color)
+                child.set_linewidth(1.5)
+        self.ax.add_patch(self.rectangle)
+
+        self.line = Line2D([], [], color=teal, ls='-')
         self.ax.add_line(self.line)
-        self.line_copy = Line2D([], [], color='#008080', ls='-', markersize=3, marker='o')
+        self.line_copy = Line2D([], [], color=teal, ls='-', markersize=3, marker='o')
         self.zoomed_ax.add_line(self.line_copy)
 
         self.ax.set_ylim(-1, 1)
@@ -78,6 +89,8 @@ class InterferogramDynamicCanvas(FigureCanvasQTAgg):
         self.fig.canvas.flush_events()
 
     def rescale_axis(self, limits, zoomed_limits):
+        self.rectangle.set_xy((zoomed_limits[0], -1))
+        self.rectangle.set_width(zoomed_limits[1]-zoomed_limits[0])
         self.ax.set_xlim(*limits)
         self.zoomed_ax.set_xlim(*zoomed_limits)
 
@@ -96,9 +109,17 @@ class FFTDynamicCanvas(FigureCanvasQTAgg):
         self.zoomed_ax.set_xlabel("Longueur d'onde [nm]")
         self.ax.set_ylabel("Intensité")
 
-        self.line = Line2D([], [], color='#008080', ls='-')
+        self.rectangle = Rectangle((0,0), width=1, height=1,
+                alpha=1, fill=False, ec=zoomed_color, lw=2, ls='--', zorder=4)
+        for child in self.zoomed_ax.get_children():
+            if isinstance(child, matplotlib.spines.Spine):
+                child.set_color(zoomed_color)
+                child.set_linewidth(1.5)
+        self.ax.add_patch(self.rectangle)
+
+        self.line = Line2D([], [], color=teal, ls='-')
         self.ax.add_line(self.line)
-        self.line_copy = Line2D([], [], color='#008080', ls='-', markersize=3, marker='o')
+        self.line_copy = Line2D([], [], color=teal, ls='-', markersize=3, marker='o')
         self.zoomed_ax.add_line(self.line_copy)
 
         self.ax.set_ylim(0, 1)
@@ -128,8 +149,8 @@ class FFTDynamicCanvas(FigureCanvasQTAgg):
 
         elif self.xaxis_type == "frequencies":
             self.xaxis_type = "wavelengths"
-            self.ax.set_xlabel("Longueurs d'onde")
-            self.zoomed_ax.set_xlabel("Longueurs d'onde")
+            self.ax.set_xlabel("Longueurs d'onde [nm]")
+            self.zoomed_ax.set_xlabel("Longueurs d'onde [nm]")
 
         self.compute_fft()
 
@@ -145,10 +166,13 @@ class FFTDynamicCanvas(FigureCanvasQTAgg):
         max_intensity = max(fft_data[1][~numpy.isinf(fft_data[0]) & ~numpy.isinf(fft_data[1])])*1.05
         self.ax.set_ylim(0, max_intensity)
         self.zoomed_ax.set_ylim(0, max_intensity)
+        self.rectangle.set_height(max_intensity)
 
         self.fig.canvas.draw()
         self.fig.canvas.flush_events()
 
     def rescale_axis(self, limits, zoomed_limits):
+        self.rectangle.set_xy((zoomed_limits[0], -1))
+        self.rectangle.set_width(zoomed_limits[1]-zoomed_limits[0])
         self.ax.set_xlim(*limits)
         self.zoomed_ax.set_xlim(*zoomed_limits)
