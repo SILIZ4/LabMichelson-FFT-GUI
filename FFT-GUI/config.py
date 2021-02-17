@@ -30,12 +30,24 @@ zoomed_interferogram_xaxis_limits = {
     }
 
 fft_xaxis_limits =  {
-        "HeNe": [-1000, 1000],
-        "WhiteLight": [-2000, 2000]
+        "frequencies": {
+            "HeNe": [-3, 3],
+            "WhiteLight": [-5, 5]
+        },
+        "wavelengths": {
+            "HeNe": [-1000, 1000],
+            "WhiteLight": [-2000, 2000]
+        }
     }
 zoomed_fft_xaxis_limits =  {
-        "HeNe": [620, 650],
-        "WhiteLight": [200, 1000]
+        "frequencies": {
+            "HeNe": [0.5, 2.5],
+            "WhiteLight": [-0.01, 0.01]
+        },
+        "wavelengths": {
+            "HeNe": [620, 650],
+            "WhiteLight": [200, 1000]
+        }
     }
 
 
