@@ -77,8 +77,8 @@ sources_sliders = {
             "Plage": {
                 "unit"   : "µm",
                 "initial": 250,
-                "minimum": 200,
-                "maximum": 300,
+                "minimum": 100,
+                "maximum": 5000,
                 "step"   : 5,
                 "scale"  : 1
             },

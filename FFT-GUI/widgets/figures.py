@@ -32,9 +32,9 @@ class InterferogramDynamicCanvas(FigureCanvasQTAgg):
         self.ax = matplotlib.pyplot.subplot2grid((1, 3), (0, 0), colspan=2, fig=self.fig)
         self.zoomed_ax = matplotlib.pyplot.subplot2grid((1, 3), (0, 2), fig=self.fig)
 
-        self.ax.set_xlabel("Position du miroir[µm]")
+        self.ax.set_xlabel("Position du miroir [µm]")
         self.ax.set_ylabel("Voltage normalisé [-]")
-        self.zoomed_ax.set_xlabel("Position du miroir[µm]")
+        self.zoomed_ax.set_xlabel("Position du miroir [µm]")
 
         self.rectangle = Rectangle((0,0), width=1, height=2,
                 alpha=1, fill=False, ec=zoomed_color, lw=2, ls='--', zorder=4)
@@ -82,7 +82,11 @@ class InterferogramDynamicCanvas(FigureCanvasQTAgg):
         data_in_zoom = interferogram_data[1] [
                     (interferogram_data[0]>=current_xlim[0]) & (interferogram_data[0]<=current_xlim[1])
                 ]
-        zoom_ymin, zoom_ymax = min(data_in_zoom), max(data_in_zoom)
+        try:
+            zoom_ymin, zoom_ymax = min(data_in_zoom), max(data_in_zoom)
+        except ValueError:
+            zoom_ymin, zoom_ymax = -1, 1
+
         self.zoomed_ax.set_ylim(zoom_ymin, zoom_ymax)
         self.rectangle.set_xy((self.rectangle.get_xy()[0], zoom_ymin))
         self.rectangle.set_height(zoom_ymax-zoom_ymin)
@@ -151,8 +155,8 @@ class FFTDynamicCanvas(FigureCanvasQTAgg):
     def toggle_xaxis_type(self):
         if self.xaxis_type == "wavelengths":
             self.xaxis_type = "frequencies"
-            self.ax.set_xlabel("Fréquences")
-            self.zoomed_ax.set_xlabel("Fréquences")
+            self.ax.set_xlabel("Fréquences [µm$^{-1}$]")
+            self.zoomed_ax.set_xlabel("Fréquences [µm$^{-1}$]")
 
         elif self.xaxis_type == "frequencies":
             self.xaxis_type = "wavelengths"
@@ -179,7 +183,11 @@ class FFTDynamicCanvas(FigureCanvasQTAgg):
         data_in_zoom = fft_data[1] [
                     (fft_data[0]>=current_xlim[0]) & (fft_data[0]<=current_xlim[1])
                 ]
-        zoom_ymin, zoom_ymax = min(data_in_zoom), max(data_in_zoom)
+        try:
+            zoom_ymin, zoom_ymax = min(data_in_zoom), max(data_in_zoom)
+        except:
+            zoom_ymin, zoom_ymax = min(fft_data[1]), max(fft_data[1])
+
         self.zoomed_ax.set_ylim(zoom_ymin, zoom_ymax)
         self.rectangle.set_xy((self.rectangle.get_xy()[0], zoom_ymin))
         self.rectangle.set_height(zoom_ymax-zoom_ymin)
