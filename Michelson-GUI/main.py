@@ -18,26 +18,29 @@ class MainWindow(QtWidgets.QWidget):
     def __init__(self, parent=None, *args):
         super(QtWidgets.QWidget, self).__init__(*args)
 
-        self.widgets = []
+        self.widgets_to_disable = []
         self.widgets_active = True
 
-        self.main_layout = QtWidgets.QVBoxLayout()
-        self.main_layout.addLayout(self.append_layouts_widgets(ExperimentalSetupInformation()))
-        self.main_layout.addWidget(LineSeparator())
-        self.main_layout.addLayout(self.append_layouts_widgets(ExperimentalSetupConfiguration()))
-        self.main_layout.addWidget(LineSeparator())
-        self.main_layout.addLayout(self.append_layouts_widgets(DataAcquisitionLayout(self.toggle_widgets)))
+        main_layout = QtWidgets.QVBoxLayout()
 
-        self.setLayout(self.main_layout)
+        self.setup_information = ExperimentalSetupInformation()
+        main_layout.addLayout(self.append_layouts_widgets(self.setup_information))
+        main_layout.addWidget(LineSeparator())
+        main_layout.addLayout(self.append_layouts_widgets(ExperimentalSetupConfiguration()))
+        main_layout.addWidget(LineSeparator())
+        main_layout.addLayout(self.append_layouts_widgets(DataAcquisitionLayout(self.setup_information.get_setup_information, self.toggle_widgets)))
+
+        self.setLayout(main_layout)
         self.setWindowTitle("Interface de contrôle du montage de Michelson")
 
     def append_layouts_widgets(self, layout):
-        self.widgets += layout.widgets
+        self.widgets_to_disable += layout.widgets_to_disable
         return layout
 
     def toggle_widgets(self):
         self.widgets_active = not self.widgets_active
-        for widget in self.widgets:
+
+        for widget in self.widgets_to_disable:
             widget.setEnabled(self.widgets_active)
 
 

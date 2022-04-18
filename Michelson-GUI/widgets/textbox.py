@@ -19,10 +19,10 @@ class FloatWithUnitLayout(QtWidgets.QHBoxLayout):
     def __init__(self, unit, minimum=1, maximum=100, editable=True, *args):
         super(QtWidgets.QHBoxLayout, self).__init__(*args)
 
-        self.widgets = []
+        self.widgets_to_disable = []
         self.addWidget(self.append_widget(FloatTextBox(editable, minimum, maximum)))
         self.addWidget(self.append_widget(QtWidgets.QLabel(unit)))
 
     def append_widget(self, widget):
-        self.widgets.append(widget)
+        self.widgets_to_disable.append(widget)
         return widget

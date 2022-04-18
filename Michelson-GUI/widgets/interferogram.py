@@ -4,7 +4,7 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
 from matplotlib.lines import Line2D
 
-#import matplotlib_config
+import matplotlib_config
 
 
 class InterferogramDynamicCanvas(FigureCanvasQTAgg):

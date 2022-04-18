@@ -170,13 +170,3 @@ class Motor:
     def convert_acceleration_to_MU(self, acceleration):
         """ acceleration in mm/s^2 """
         return int(round(self.unit_conversions["MU/(mm/s^2)"]*acceleration))
-
-
-COM_Port = '/dev/ttyUSB0' # Change to preferred
-motor = Motor(COM_Port, "ZST225B")
-print("Before moving", motor.get_current_position())
-motor.move_to(0)
-motor.set_step_size(0.5)
-motor.jog()
-print("After moving", motor.get_current_position())
-motor.disable_stage()
