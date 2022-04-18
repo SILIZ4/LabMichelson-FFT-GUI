@@ -106,7 +106,7 @@ class ExperimentalSetupConfiguration(QtWidgets.QVBoxLayout):
 
         text_box_layout = QtWidgets.QVBoxLayout()
         text_box_layout.addLayout(self.append_layouts_widgets(RealValuesTextBoxLayout("µm")))
-        text_box_layout.addLayout(self.append_layouts_widgets(RealValuesTextBoxLayout("s")))
+        text_box_layout.addLayout(self.append_layouts_widgets(RealValuesTextBoxLayout("ms")))
         text_box_layout.addItem(QtWidgets.QSpacerItem(1, 10))
         self.average_number_textbox = RealValuesTextBox(True, 0, 10, 0)
         text_box_layout.addWidget(self.append_widget(self.average_number_textbox), 2)
@@ -129,7 +129,7 @@ class ExperimentalSetupConfiguration(QtWidgets.QVBoxLayout):
     def append_layouts_widgets(self, layout):
         self.widgets += layout.widgets
         return layout
-    
+
 
 class DataCollection(QtWidgets.QVBoxLayout):
     def __init__(self, window_parent, *args):
