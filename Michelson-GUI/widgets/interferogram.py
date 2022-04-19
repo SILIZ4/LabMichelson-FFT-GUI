@@ -8,7 +8,9 @@ import matplotlib_config
 
 
 class InterferogramDynamicCanvas(FigureCanvasQTAgg):
-    def __init__(self, **kwargs):
+    def __init__(self, voltmeter, **kwargs):
+
+        self._voltmeter = voltmeter
 
         self.fig = Figure(**kwargs)
 
@@ -21,8 +23,8 @@ class InterferogramDynamicCanvas(FigureCanvasQTAgg):
         self._voltmeter_ax.yaxis.tick_right()
         self._voltmeter_ax.get_xaxis().set_visible(False)
 
-        self._voltmeter = VoltmeterScreen(0.2)
-        for p in self._voltmeter.get_patches():
+        self._voltmeter_screen = VoltmeterScreen(0.2)
+        for p in self._voltmeter_screen.get_patches():
             self._voltmeter_ax.add_patch(p)
 
 
@@ -37,12 +39,18 @@ class InterferogramDynamicCanvas(FigureCanvasQTAgg):
         self.fig.subplots_adjust(top=0.85, bottom=0.2)
 
 
+    def update_voltmeter(self):
+        self._voltmeter_screen.update(self._voltmeter.read())
+        self.fig.canvas.draw()
+        self.fig.canvas.flush_events()
+
+
     def draw_frame(self, data):
         if len(data["positions"]) == 0:
             return
 
+        self._voltmeter_screen.update(data["voltages"][-1])
         self._line.set_data([data["positions"], data["voltages"]])
-        self._voltmeter.update(data["voltages"][-1])
         self._drawn_artists = [self._line]
 
         position_min, position_max = min(data["positions"]), max(data["positions"])

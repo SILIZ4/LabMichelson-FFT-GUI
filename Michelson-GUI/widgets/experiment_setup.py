@@ -4,10 +4,12 @@ from .textbox import FloatWithUnitLayout, FloatTextBox
 
 
 class ExperimentalSetupInformation(QtWidgets.QHBoxLayout):
-    def __init__(self, *args):
+    def __init__(self, motor, *args):
         super(QtWidgets.QHBoxLayout, self).__init__(*args)
 
         self.widgets_to_disable = []
+        self.update_functions = []
+        self._motor = motor
         cols = [QtWidgets.QVBoxLayout() for i in range(5)]
 
         for i, col in enumerate(cols):
@@ -20,7 +22,7 @@ class ExperimentalSetupInformation(QtWidgets.QHBoxLayout):
             label.setAlignment(QtCore.Qt.AlignCenter)
             col.addWidget(label)
 
-        for i, name in enumerate(["Position absolue:", "Position relative:"]):
+        for name in ["Position absolue:", "Position relative:"]:
             cols[0].addWidget(QtWidgets.QLabel(name), 1)
             cols[1].addWidget(FloatTextBox(editable=False), 2)
             cols[2].addWidget(QtWidgets.QLabel("µm"))
@@ -36,7 +38,12 @@ class ExperimentalSetupInformation(QtWidgets.QHBoxLayout):
         for col in cols:
             self.addLayout(col)
 
-        self.addWidget(self._append_widget(QtWidgets.QPushButton("Remettre position relative à 0")))
+        set_relative_position_button = QtWidgets.QPushButton("Remettre position relative à 0")
+        set_relative_position_button.pressed.connect(self._set_motor_reference_point)
+        self.addWidget(self._append_widget(set_relative_position_button))
+
+    def _set_motor_reference_point(self):
+        self._motor.set_reference_point()
 
     def _append_widget(self, widget):
         self.widgets_to_disable.append(widget)
@@ -48,6 +55,7 @@ class ExperimentalSetupConfiguration(QtWidgets.QVBoxLayout):
         super(QtWidgets.QVBoxLayout, self).__init__(*args)
 
         self.widgets_to_disable = []
+        self.update_functions = []
 
         radio_buttons_layout = QtWidgets.QVBoxLayout()
         radio_buttons_layout.addWidget(self._append_widget(QtWidgets.QRadioButton("Avancer")))

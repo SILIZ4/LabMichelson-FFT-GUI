@@ -11,19 +11,23 @@ from data_acquirer import DataAcquirer
 
 
 class DataAcquisitionLayout(QtWidgets.QVBoxLayout):
-    def __init__(self, motor, voltmeter, get_setup_parameters_function, toggle_widgets_function, *args):
+    def __init__(self, motor, voltmeter, get_setup_parameters_function, toggle_widgets_function, toggle_refresh_function, *args):
         super(QtWidgets.QVBoxLayout, self).__init__(*args)
 
-        self._interferogram = InterferogramDynamicCanvas()
-        self._data_acquirer = DataAcquirer(motor, voltmeter, get_setup_parameters_function, self._interferogram.draw_frame)
+        self.update_functions = []
         self.widgets_to_disable = []
         self._acquiring = False
         self._thread = None
+
+        self._interferogram = InterferogramDynamicCanvas(voltmeter)
+        self._data_acquirer = DataAcquirer(motor, voltmeter, get_setup_parameters_function, self._interferogram.draw_frame)
+        self.update_functions.append(self._interferogram.update_voltmeter)
 
         self.addWidget(self._interferogram)
 
         button_layout = QtWidgets.QHBoxLayout()
         self.acquire_data_button = QtWidgets.QPushButton("Acquérir des données")
+        self.acquire_data_button.pressed.connect(toggle_refresh_function)
         self.acquire_data_button.pressed.connect(self._toggle_motor_state)
         self.acquire_data_button.pressed.connect(toggle_widgets_function)
         self.acquire_data_button.pressed.connect(self._change_button_text)

@@ -1,7 +1,8 @@
 from struct import pack, unpack
-import serial
 import time
 from warnings import warn
+
+import serial
 
 
 # Properties must be integers.
@@ -13,16 +14,21 @@ jog_settings = {
             "stop mode"   : 0x0002   # smooth stop
         }
 
+
 class MotorTest:
     def __init__(self, *args):
         self.position = 0
         self.step = 0
+        self.reference_point = 0
 
     def set_step_size(self, size):
         self.step = size
 
+    def set_reference_point(self):
+        self.reference_point = self.position
+
     def get_current_position(self):
-        return self.position
+        return self.position - self.reference_point
 
     def jog(self):
         self.position += self.step
@@ -85,28 +91,20 @@ class Motor:
         self.flush()
 
         self.enable_stage()
-
-
-    def flush(self):
-        self.communicator.flushInput()
-        self.communicator.flushOutput()
-
-
-    def _ensure_motor_received_instruction(self):
-        time.sleep(0.1)
+        self.set_reference_point()
 
 
     def enable_stage(self):
         # Enable Stage; MGMSG_MOD_SET_CHANENABLESTATE
         self.communicator.write(pack('<HBBBB', 0x0210, self.channel, 0x01, self.destination, self.source))
         self._ensure_motor_received_instruction()
+        self.flush()
 
 
     def disable_stage(self):
         # Disable Stage; MGMSG_MOD_SET_CHANENABLESTATE
         self.communicator.write(pack('<HBBBB', 0x0210, self.channel, 0x02, self.destination, self.source))
         self._ensure_motor_received_instruction()
-
         self.flush()
 
 
@@ -116,7 +114,10 @@ class Motor:
 
         # Read back position returned by the cube; Rx message MGMSG_MOT_GET_POSCOUNTER
         header, chan_dent, position_in_mu = unpack('<6sHI', self.communicator.read(12))
-        return self.convert_MU_to_position(position_in_mu)
+        return self.convert_MU_to_position(position_in_mu - self._reference_point)
+
+    def set_reference_point(self):
+        self._reference_point = self.get_current_position
 
 
     def set_step_size(self, step_size):
@@ -184,3 +185,12 @@ class Motor:
     def convert_acceleration_to_MU(self, acceleration):
         """ acceleration in mm/s^2 """
         return int(round(self.unit_conversions["MU/(mm/s^2)"]*acceleration))
+
+
+    def flush(self):
+        self.communicator.flushInput()
+        self.communicator.flushOutput()
+
+
+    def _ensure_motor_received_instruction(self):
+        time.sleep(0.1)
