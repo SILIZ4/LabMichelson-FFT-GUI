@@ -58,6 +58,7 @@ class DataAcquisitionLayout(QtWidgets.QVBoxLayout):
         self._acquiring = not self._acquiring
 
         if self._acquiring:
+            self._data_acquirer.clear()
             self._data_acquirer.acquire()  # infinite loop
         else:
             self._data_acquirer.stop()
