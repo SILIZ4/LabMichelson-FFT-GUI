@@ -32,21 +32,21 @@ class Motor:
     """
     Object that sends to and receive data from a ThorLabs' motor.
 
-    ThorLabs uses it's own messaging protocol called APT. This protocol is described here https://www.thorlabs.com/Software/Motion%20Control/APT_Communications_Protocol.pdf
+    ThorLabs uses its own messaging protocol called APT. Thorlabs documentation is found here https://www.thorlabs.com/Software/Motion%20Control/APT_Communications_Protocol.pdf
     This manual also present the available instructions for each type of motor and describes how they behave.
-    Here, we explain in summary how it works.
+    Here, this docstring explains in summary how APT is used.
 
     Messages are a sequence of bits of varying length. They are sent via the "write" method of the "serial" object
-    connected to the given motor USB port.
+    connected to the given motor USB port. They are created using Python's "struct.pack" function. The first argument
+    of this function contains a format string in which each character represent the type of parameter in the sequence:
+        'B': 8 bits;
+        'H': 16-bit unsigned integer;
+        'I': 32-bit signed integer.
+    The complete list can be found at https://docs.python.org/3/library/struct.html. Because motors read little-endian
+    values, the character '<' must be added in the format string.
 
-    To create a message, we use Python's "struct.pack" function. The first argument contains a format string in
-    which each character represent the type of parameter. "B" stands for 8 bits, "H" for 16-bit unsigned integer
-    and "I" for a 32-bit signed integer. Complete list can be found at https://docs.python.org/3/library/struct.html
-    Because motors read little-endian values, the character '<' must be added in the format string. If we want
-    to send a message containing a 16-bit unsigned integer followed by a byte (8 bits), we use "<HB" as the format
-    string:
-
-        struct.pack("<HB", ...)
+    Ex: To send a message containing a 16-bit unsigned integer followed by a byte (8 bits), the format string is "<HB":
+            struct.pack("<HB", ...)
 
     Types used in messages are described at page 39 of ThorLabs' documentation (as of Issue 30). The second argument
     of "struck.pack" is the list of values to store in the sequence (using the types of the format string).
@@ -54,8 +54,8 @@ class Motor:
     In the APT protocol, every message must start the ID of the instruction, a 16-bit unsigned integer ("H"). The
     other bits are optional: they depend on the instruction asked (read the instruction's description in the manual).
 
-    The motors represents positions in their intrinsic integer unit which we call MU. The motor class provides the
-    conversion factors for each unit used.
+    The motors represents positions in their intrinsic integer unit which this class calls MU. The Motor class provides
+    the conversion factors for each unit used.
     """
 
     unit_conversion = {
