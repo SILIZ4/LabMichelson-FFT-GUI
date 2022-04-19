@@ -38,9 +38,6 @@ class ExperimentalSetupInformation(QtWidgets.QHBoxLayout):
 
         self.addWidget(self._append_widget(QtWidgets.QPushButton("Remettre position relative à 0")))
 
-    def get_setup_information(self):
-        return
-
     def _append_widget(self, widget):
         self.widgets_to_disable.append(widget)
         return widget
@@ -61,18 +58,25 @@ class ExperimentalSetupConfiguration(QtWidgets.QVBoxLayout):
         self.optimize_checkbox.stateChanged.connect(self._toggle_average_textbox)
         radio_buttons_layout.addWidget(self._append_widget(self.optimize_checkbox))
 
+        spacer = QtWidgets.QSpacerItem(1, 10)
         labels_layout = QtWidgets.QVBoxLayout()
-        labels_layout.addWidget(QtWidgets.QLabel("Longueur d'un déplacement"))
-        labels_layout.addWidget(QtWidgets.QLabel("Délai entre chaque déplacement"))
-        labels_layout.addItem(QtWidgets.QSpacerItem(1, 10))
-        labels_layout.addWidget(QtWidgets.QLabel("Nombre de mesures par donnée"))
+        labels_layout.addWidget(QtWidgets.QLabel("Taille d'un pas"))
+        labels_layout.addWidget(QtWidgets.QLabel("Délai entre chaque pas"))
+        labels_layout.addItem(spacer)
+        labels_layout.addWidget(QtWidgets.QLabel("Nombre de mesures par pas"))
 
+        self._textboxes_parameters = ["step size", "delay", "measure number"]
+        self._textboxes = [
+                    FloatWithUnitLayout("µm", default="1"),
+                    FloatWithUnitLayout("ms", default="10"),
+                    FloatTextBox(editable=True, decimals=0, default="10")
+                ]
         text_box_layout = QtWidgets.QVBoxLayout()
-        text_box_layout.addLayout(self._append_layouts_widgets(FloatWithUnitLayout("µm")))
-        text_box_layout.addLayout(self._append_layouts_widgets(FloatWithUnitLayout("ms")))
-        text_box_layout.addItem(QtWidgets.QSpacerItem(1, 10))
-        self.average_number_textbox = FloatTextBox(True, 0, 10, 0)
-        text_box_layout.addWidget(self._append_widget(self.average_number_textbox), 2)
+
+        text_box_layout.addLayout(self._append_layouts_widgets(self._textboxes[0]))
+        text_box_layout.addLayout(self._append_layouts_widgets(self._textboxes[1]))
+        text_box_layout.addItem(spacer)
+        text_box_layout.addWidget(self._append_widget(self._textboxes[2]), 2)
 
         move_controls = QtWidgets.QHBoxLayout()
         move_controls.addLayout(radio_buttons_layout, 1)
@@ -82,8 +86,15 @@ class ExperimentalSetupConfiguration(QtWidgets.QVBoxLayout):
 
         self.addLayout(move_controls)
 
+    def get_setup_information(self):
+        parameters = {}
+        for parameter, textbox in zip(self._textboxes_parameters, self._textboxes):
+            parameters[parameter] = float(textbox.text())
+
+        return parameters
+
     def _toggle_average_textbox(self):
-        self.average_number_textbox.setEnabled(not self.optimize_checkbox.isChecked())
+        self._textboxes[2].setEnabled(not self.optimize_checkbox.isChecked())
 
     def _append_widget(self, widget):
         self.widgets_to_disable.append(widget)

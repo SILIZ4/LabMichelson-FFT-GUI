@@ -5,6 +5,11 @@ from PyQt5 import QtCore, QtWidgets, QtGui
 from widgets.data_acquisition import DataAcquisitionLayout
 from widgets.experiment_setup import ExperimentalSetupInformation, ExperimentalSetupConfiguration
 
+from motor import MotorTest
+from voltmeter import Voltmeter
+from data_acquirer import DataAcquirer
+import config
+
 
 class LineSeparator(QtWidgets.QFrame):
     def __init__(self, *args):
@@ -21,14 +26,19 @@ class MainWindow(QtWidgets.QWidget):
         self.widgets_to_disable = []
         self.widgets_active = True
 
+        self.motor = MotorTest(config.motor_usb_port, config.motor_name)
+        self.voltmeter = Voltmeter(config.voltmeter_usb_port)
+
         main_layout = QtWidgets.QVBoxLayout()
 
-        self.setup_information = ExperimentalSetupInformation()
-        main_layout.addLayout(self.append_layouts_widgets(self.setup_information))
+        main_layout.addLayout(self.append_layouts_widgets(ExperimentalSetupInformation()))
+
+        setup_config = ExperimentalSetupConfiguration()
         main_layout.addWidget(LineSeparator())
-        main_layout.addLayout(self.append_layouts_widgets(ExperimentalSetupConfiguration()))
+        main_layout.addLayout(self.append_layouts_widgets(setup_config))
+
         main_layout.addWidget(LineSeparator())
-        main_layout.addLayout(self.append_layouts_widgets(DataAcquisitionLayout(self.setup_information.get_setup_information, self.toggle_widgets)))
+        main_layout.addLayout(self.append_layouts_widgets(DataAcquisitionLayout(DataAcquirer(self.motor, self.voltmeter, setup_config.get_setup_information), self.toggle_widgets)))
 
         self.setLayout(main_layout)
         self.setWindowTitle("Interface de contrôle du montage de Michelson")

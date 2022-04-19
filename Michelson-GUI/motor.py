@@ -13,6 +13,20 @@ jog_settings = {
             "stop mode"   : 0x0002   # smooth stop
         }
 
+class MotorTest:
+    def __init__(self, *args):
+        self.position = 0
+        self.step = 0
+
+    def set_step_size(self, size):
+        self.step = size
+
+    def get_current_position(self):
+        return self.position
+
+    def jog(self):
+        self.position += self.step
+
 
 class Motor:
     """
@@ -121,7 +135,7 @@ class Motor:
         # Do a jog; MGMSG_MOT_MOVE_JOG
         self.communicator.write(pack('<HBBBB', 0x046A, self.channel, 0x01, self.destination, self.source))
         self._ensure_motor_received_instruction()
-        self._wait_until_move_completed()
+        self.wait_until_move_completed()
 
 
     def move_to(self, position, relative=True):
@@ -135,10 +149,10 @@ class Motor:
                               self.convert_position_to_MU(position)))
 
         self._ensure_motor_received_instruction()
-        self._wait_until_move_completed()
+        self.wait_until_move_completed()
 
 
-    def _wait_until_move_completed(self):
+    def wait_until_move_completed(self):
         Rx = ''
         Moved = pack('<H',0x0464)
         while Rx != Moved:

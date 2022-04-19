@@ -21,7 +21,7 @@ class InterferogramDynamicCanvas(FigureCanvasQTAgg):
         self.voltmeter_ax.yaxis.tick_right()
         self.voltmeter_ax.get_xaxis().set_visible(False)
 
-        self.voltmeter = Voltmeter(0.2)
+        self.voltmeter = VoltmeterScreen(0.2)
         self.voltmeter_ax.add_artist(self.voltmeter.get_patch())
 
 
@@ -45,7 +45,7 @@ class InterferogramDynamicCanvas(FigureCanvasQTAgg):
         self.ax.set_xlim(*limits)
 
 
-class Voltmeter:
+class VoltmeterScreen:
     def __init__(self, value=0, maximum=1):
         self.value = value
         self.max = maximum
