@@ -76,9 +76,9 @@ class ExperimentalSetupConfiguration(QtWidgets.QVBoxLayout):
 
         self._textboxes_parameters = ["step size", "delay", "measure number"]
         self._textboxes = [
-                    FloatWithUnitLayout("µm", default="1"),
-                    FloatWithUnitLayout("ms", default="10"),
-                    FloatTextBox(editable=True, decimals=0, default="10")
+                    FloatWithUnitLayout("µm", default="1", minimum=0.1, maximum=2),
+                    FloatWithUnitLayout("ms", default="10", minimum=1, maximum=50),
+                    FloatTextBox(editable=True, default="10", minimum=0, maximum=100, decimals=0)
                 ]
         text_box_layout = QtWidgets.QVBoxLayout()
 
