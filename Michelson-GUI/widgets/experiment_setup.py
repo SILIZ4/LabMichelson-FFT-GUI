@@ -10,41 +10,15 @@ class ExperimentalSetupInformation(QtWidgets.QHBoxLayout):
         self.widgets_to_disable = []
         self.update_functions = [self._get_and_display_position]
         self._motor = motor
-        cols = [QtWidgets.QVBoxLayout() for i in range(5)]
+        cols = [QtWidgets.QVBoxLayout() for i in range(2)]
 
-        for i, col in enumerate(cols):
-            label = ""
-            if i == 1:
-                label = "Vis"
-            elif i == 3:
-                label = "Miroir"
-            label = QtWidgets.QLabel(label)
-            label.setAlignment(QtCore.Qt.AlignCenter)
-            col.addWidget(label)
-
-        self._motor_position_textbox = FloatWithUnitLayout("µm", editable=False)
-        self._mirror_position_textbox = FloatWithUnitLayout("µm", editable=False)
+        self._relative_motor_position_textbox = FloatWithUnitLayout("µm", editable=False, default=str(motor.get_relative_position()))
         cols[0].addWidget(QtWidgets.QLabel("Position relative:"), 1)
-        cols[1].addLayout(self._motor_position_textbox, 2)
-        cols[0].addWidget(QtWidgets.QLabel("Position relative:"), 1)
-        cols[1].addLayout(self._mirror_position_textbox, 2)
+        cols[0].addWidget(QtWidgets.QLabel("Position absolue:"), 1)
 
-        cols[2].addWidget(QtWidgets.QLabel(""))
-        cols[3].addWidget(QtWidgets.QLabel(""), 2)
-        cols[4].addWidget(QtWidgets.QLabel(""))
-        # for name in ["Position absolue:", "Position relative:"]:
-            # cols[0].addWidget(QtWidgets.QLabel(name), 1)
-            # cols[1].addWidget(FloatTextBox(editable=False), 2)
-            # cols[2].addWidget(QtWidgets.QLabel("µm"))
-            # cols[3].addWidget(FloatTextBox(editable=False), 2)
-            # cols[4].addWidget(QtWidgets.QLabel("µm"))
-
-        # self._calibration_textbox = FloatTextBox(editable=True, default=10)
-        # cols[0].addWidget(QtWidgets.QLabel("Facteur de calibration:"), 1)
-        # cols[1].addWidget(self._append_widget(self._calibration_textbox), 2)
-        # cols[2].addWidget(QtWidgets.QLabel(""))
-        # cols[3].addWidget(QtWidgets.QLabel(""), 2)
-        # cols[4].addWidget(QtWidgets.QLabel(""))
+        self._absolute_motor_position_textbox = FloatWithUnitLayout("µm", editable=False, default=str(motor.get_absolute_position()))
+        cols[1].addLayout(self._relative_motor_position_textbox, 2)
+        cols[1].addLayout(self._absolute_motor_position_textbox, 2)
 
         for col in cols:
             self.addLayout(col)
@@ -55,13 +29,15 @@ class ExperimentalSetupInformation(QtWidgets.QHBoxLayout):
 
 
     def _get_and_display_position(self):
-        motor_position = self._motor.get_current_position()
-        self._motor_position_textbox.setText(str(motor_position))
+        absolute_position = self._motor.get_absolute_position()
+        self._absolute_motor_position_textbox.setText(str(absolute_position))
+        self._relative_motor_position_textbox.setText(str(absolute_position-self._motor._reference_point))
 
 
     def display_position(self, data, acquiring_data):
         if data is not None:
-            self._motor_position_textbox.setText(str(data["positions"][-1]))
+            self._absolute_motor_position_textbox.setText(str(data["positions"][-1] + self._motor._reference_point))
+            self._relative_motor_position_textbox.setText(str(data["positions"][-1]))
 
 
     def _set_motor_reference_point(self):

@@ -19,16 +19,24 @@ class MotorTest:
     def __init__(self, *args):
         self.position = 0
         self.step = 0
-        self.reference_point = 0
+        self._reference_point = 0
+
 
     def set_step_size(self, size):
         self.step = size
 
-    def set_reference_point(self):
-        self.reference_point = self.position
 
-    def get_current_position(self):
-        return self.position - self.reference_point
+    def set_reference_point(self):
+        self._reference_point = self.position
+
+
+    def get_absolute_position(self):
+        return self.position
+
+
+    def get_relative_position(self):
+        return self.position - self._reference_point
+
 
     def jog(self, forward):
         self.position += self.step if forward else -self.step
@@ -66,7 +74,8 @@ class Motor:
 
     unit_conversion = {
                 # "ZST225B": { "MU/mm": 2008645.63, "MU/(mm/s)": 107824097.5, "MU/(mm/s^2)": 22097.3} Incorrect factor?
-                "ZST225B": { "MU/mm": 2008645.63/0.26886, "MU/(mm/s)": 107824097.5/0.26886, "MU/(mm/s^2)": 22097.3/0.26886}
+                # These values were calibrated manually
+                "ZST225B": { "MU/um": 2008645.63/0.26886 * 1e3, "MU/(mm/s)": 107824097.5/0.26886, "MU/(mm/s^2)": 22097.3/0.26886}
             }
 
     def __init__(self, usb_port_location, motor_name):
@@ -108,17 +117,21 @@ class Motor:
         self.flush()
 
 
-    def get_current_position(self, relative=True):
+    def get_absolute_position(self):
         # Request Position; MGMSG_MOT_REQ_POSCOUNTER
         self.communicator.write(pack('<HBBBB', 0x0411, self.channel, 0x00, self.destination, self.source))
 
         # Read back position returned by the cube; Rx message MGMSG_MOT_GET_POSCOUNTER
         header, chan_dent, position_in_mu = unpack('<6sHI', self.communicator.read(12))
-        return self.convert_MU_to_position(position_in_mu - self._reference_point)
+        return self.convert_MU_to_position(position_in_mu)
+
+
+    def get_relative_position(self):
+        return self.get_absolute_position() - self._reference_point
 
 
     def set_reference_point(self):
-        self._reference_point = self.get_current_position
+        self._reference_point = self.get_absolute_position()
 
 
     def set_step_size(self, step_size):
@@ -170,13 +183,13 @@ class Motor:
 
 
     def convert_position_to_MU(self, position):
-        """ position in mm """
-        return int(round(self.unit_conversions["MU/mm"]*position))
+        """ position in um """
+        return int(round(self.unit_conversions["MU/um"]*position))
 
 
     def convert_MU_to_position(self, position):
-        """ position in mm """
-        return position/self.unit_conversions["MU/mm"]
+        """ position in um """
+        return position/self.unit_conversions["MU/um"]
 
 
     def convert_velocity_to_MU(self, velocity):

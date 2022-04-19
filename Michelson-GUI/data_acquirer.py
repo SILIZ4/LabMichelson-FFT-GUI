@@ -50,12 +50,12 @@ class DataAcquirer:
 
         while self._is_acquiring:
             if acquire_data:
-                self._positions.append( self._motor.get_current_position() )
+                self._positions.append( self._motor.get_relative_position() )
                 self._voltages.append(self._measure_average_voltage(measure_number, delay))
 
                 data = self.get_data()
             else:
-                data = {"positions": [self._motor.get_current_position()], "voltages": [self._voltmeter.read()]}
+                data = {"positions": [self._motor.get_relative_position()], "voltages": [self._voltmeter.read()]}
 
             for callback in self._callbacks:
                 callback(data, acquire_data)

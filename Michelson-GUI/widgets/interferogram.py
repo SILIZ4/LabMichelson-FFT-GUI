@@ -31,7 +31,6 @@ class InterferogramDynamicCanvas(FigureCanvasQTAgg):
         self._voltage = Line2D([], [], color='#008080', ls='-', marker=".", clip_on=True)
         self._ax.add_line(self._voltage)
         self._position_cursor = self._ax.axvline(0, color=matplotlib_config.midblack, ls="--", lw=2)
-        print(self._position_cursor)
 
         self._ax.set_ylim(-1, 1)
 
