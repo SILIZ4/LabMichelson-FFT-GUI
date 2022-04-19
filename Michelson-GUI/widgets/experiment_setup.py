@@ -8,7 +8,7 @@ class ExperimentalSetupInformation(QtWidgets.QHBoxLayout):
         super(QtWidgets.QHBoxLayout, self).__init__(*args)
 
         self.widgets_to_disable = []
-        self.update_functions = []
+        self.update_functions = [self._get_and_display_position]
         self._motor = motor
         cols = [QtWidgets.QVBoxLayout() for i in range(5)]
 
@@ -22,18 +22,29 @@ class ExperimentalSetupInformation(QtWidgets.QHBoxLayout):
             label.setAlignment(QtCore.Qt.AlignCenter)
             col.addWidget(label)
 
-        for name in ["Position absolue:", "Position relative:"]:
-            cols[0].addWidget(QtWidgets.QLabel(name), 1)
-            cols[1].addWidget(FloatTextBox(editable=False), 2)
-            cols[2].addWidget(QtWidgets.QLabel("µm"))
-            cols[3].addWidget(FloatTextBox(editable=False), 2)
-            cols[4].addWidget(QtWidgets.QLabel("µm"))
+        self._motor_position_textbox = FloatWithUnitLayout("µm", editable=False)
+        self._mirror_position_textbox = FloatWithUnitLayout("µm", editable=False)
+        cols[0].addWidget(QtWidgets.QLabel("Position relative:"), 1)
+        cols[1].addLayout(self._motor_position_textbox, 2)
+        cols[0].addWidget(QtWidgets.QLabel("Position relative:"), 1)
+        cols[1].addLayout(self._mirror_position_textbox, 2)
 
-        cols[0].addWidget(QtWidgets.QLabel("Facteur de calibration:"), 1)
-        cols[1].addWidget(self._append_widget(FloatTextBox(editable=True)), 2)
         cols[2].addWidget(QtWidgets.QLabel(""))
         cols[3].addWidget(QtWidgets.QLabel(""), 2)
         cols[4].addWidget(QtWidgets.QLabel(""))
+        # for name in ["Position absolue:", "Position relative:"]:
+            # cols[0].addWidget(QtWidgets.QLabel(name), 1)
+            # cols[1].addWidget(FloatTextBox(editable=False), 2)
+            # cols[2].addWidget(QtWidgets.QLabel("µm"))
+            # cols[3].addWidget(FloatTextBox(editable=False), 2)
+            # cols[4].addWidget(QtWidgets.QLabel("µm"))
+
+        # self._calibration_textbox = FloatTextBox(editable=True, default=10)
+        # cols[0].addWidget(QtWidgets.QLabel("Facteur de calibration:"), 1)
+        # cols[1].addWidget(self._append_widget(self._calibration_textbox), 2)
+        # cols[2].addWidget(QtWidgets.QLabel(""))
+        # cols[3].addWidget(QtWidgets.QLabel(""), 2)
+        # cols[4].addWidget(QtWidgets.QLabel(""))
 
         for col in cols:
             self.addLayout(col)
@@ -42,8 +53,20 @@ class ExperimentalSetupInformation(QtWidgets.QHBoxLayout):
         set_relative_position_button.pressed.connect(self._set_motor_reference_point)
         self.addWidget(self._append_widget(set_relative_position_button))
 
+
+    def _get_and_display_position(self):
+        motor_position = self._motor.get_current_position()
+        self._motor_position_textbox.setText(str(motor_position))
+
+
+    def display_position(self, data):
+        if len(data["positions"]) > 0:
+            self._motor_position_textbox.setText(str(data["positions"][-1]))
+
+
     def _set_motor_reference_point(self):
         self._motor.set_reference_point()
+
 
     def _append_widget(self, widget):
         self.widgets_to_disable.append(widget)
@@ -94,6 +117,7 @@ class ExperimentalSetupConfiguration(QtWidgets.QVBoxLayout):
 
         self.addLayout(move_controls)
 
+
     def get_setup_information(self):
         parameters = {}
         for parameter, textbox in zip(self._textboxes_parameters, self._textboxes):
@@ -101,12 +125,15 @@ class ExperimentalSetupConfiguration(QtWidgets.QVBoxLayout):
 
         return parameters
 
+
     def _toggle_average_textbox(self):
         self._textboxes[2].setEnabled(not self.optimize_checkbox.isChecked())
+
 
     def _append_widget(self, widget):
         self.widgets_to_disable.append(widget)
         return widget
+
 
     def _append_layouts_widgets(self, layout):
         self.widgets_to_disable += layout.widgets_to_disable

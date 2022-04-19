@@ -7,6 +7,7 @@ from widgets.experiment_setup import ExperimentalSetupInformation, ExperimentalS
 
 from motor import MotorTest
 from voltmeter import Voltmeter
+from data_acquirer import DataAcquirer
 import config
 
 
@@ -31,13 +32,16 @@ class MainWindow(QtWidgets.QWidget):
 
         main_layout = QtWidgets.QVBoxLayout()
 
-        self.addLayout(main_layout, ExperimentalSetupInformation(self.motor))
+        setup_information = ExperimentalSetupInformation(self.motor)
+        self.addLayout(main_layout, setup_information)
 
         setup_config = ExperimentalSetupConfiguration()
         main_layout.addWidget(LineSeparator())
         self.addLayout(main_layout, setup_config)
 
-        data_acquisition = DataAcquisitionLayout(self.motor, self.voltmeter, setup_config.get_setup_information, self._toggle_widgets, self._toggle_refresh)
+        data_acquirer = DataAcquirer(self.motor, self.voltmeter, setup_config.get_setup_information)
+        data_acquirer.add_callback(setup_information.display_position)
+        data_acquisition = DataAcquisitionLayout(self.motor, self.voltmeter, data_acquirer, self._toggle_widgets, self._toggle_refresh)
         main_layout.addWidget(LineSeparator())
         self.addLayout(main_layout, data_acquisition)
 

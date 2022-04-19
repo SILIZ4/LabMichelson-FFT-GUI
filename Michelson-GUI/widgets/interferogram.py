@@ -69,12 +69,14 @@ class VoltmeterScreen:
 
     cursor_width = .02
 
+
     def __init__(self, value=0, maximum=1):
         self.warning_threshold = .7*maximum
         self.clipping_threshold = .9*maximum
         self.max = maximum
 
         self.cursor = patches.Rectangle((0, abs(value)+self.cursor_width/2), 1, self.cursor_width, color=matplotlib_config.midblack)
+
 
     def get_patches(self, **kwargs):
         return [
@@ -83,6 +85,7 @@ class VoltmeterScreen:
                 patches.Rectangle((0, self.clipping_threshold), 1, self.max-self.warning_threshold, color=self.clipping_color),
                 self.cursor
             ]
+
 
     def update(self, value):
         self.cursor.set_xy((0, abs(value)+self.cursor_width/2))

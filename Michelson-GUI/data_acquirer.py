@@ -12,19 +12,25 @@ class DataAcquirer:
      - "step size"
      - "delay"
     """
-    def __init__(self, motor, voltmeter, get_acquirer_parameters_function, update_function):
+
+    def __init__(self, motor, voltmeter, get_acquirer_parameters_function):
         self._motor = motor
         self._voltmeter = voltmeter
         self._get_parameters = get_acquirer_parameters_function
-        self._update_function = update_function
+        self._callbacks = []
         self._is_acquiring = False
 
         self.clear()
 
 
+    def add_callback(self, callback):
+        self._callbacks.append(callback)
+
+
     def clear(self):
         self._voltages = []
         self._positions = []
+
 
     def acquire(self):
         """ Infinite loop that must be ran in a thread to be stopped via "stop". """
@@ -38,21 +44,27 @@ class DataAcquirer:
         while self._is_acquiring:
             self._positions.append( self._motor.get_current_position() )
             self._voltages.append(self._measure_average_voltage(int(parameters["measure number"]), parameters["delay"]/1000))
-            self._update_function(self.get_data())
 
+            data = self.get_data()
+            for callback in self._callbacks:
+                callback(data)
             self._motor.jog()
+
 
     def stop(self):
         self._is_acquiring = False
 
+
     def is_acquiring(self):
         return self._is_acquiring
+
 
     def get_data(self):
         return {
                 "positions": self._positions,
                 "voltages": self._voltages
             }
+
 
     def _measure_average_voltage(self, measure_number, delay):
         voltage_sum = 0

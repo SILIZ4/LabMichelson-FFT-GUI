@@ -25,8 +25,14 @@ class FloatWithUnitLayout(QtWidgets.QHBoxLayout):
         self.addWidget(self.append_widget(self.float_textbox))
         self.addWidget(self.append_widget(QtWidgets.QLabel(unit)))
 
+
     def text(self):
         return self.float_textbox.text()
+
+
+    def setText(self, *args):
+        return self.float_textbox.setText(*args)
+
 
     def append_widget(self, widget):
         self.widgets_to_disable.append(widget)

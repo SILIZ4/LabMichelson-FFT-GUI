@@ -116,6 +116,7 @@ class Motor:
         header, chan_dent, position_in_mu = unpack('<6sHI', self.communicator.read(12))
         return self.convert_MU_to_position(position_in_mu - self._reference_point)
 
+
     def set_reference_point(self):
         self._reference_point = self.get_current_position
 
