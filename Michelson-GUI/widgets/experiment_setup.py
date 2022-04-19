@@ -23,7 +23,7 @@ class ExperimentalSetupInformation(QtWidgets.QHBoxLayout):
         for col in cols:
             self.addLayout(col)
 
-        set_relative_position_button = QtWidgets.QPushButton("Remettre position relative à 0")
+        set_relative_position_button = QtWidgets.QPushButton("Fixer position de référence")
         set_relative_position_button.pressed.connect(self._set_motor_reference_point)
         self.addWidget(self._append_widget(set_relative_position_button))
 
@@ -69,10 +69,10 @@ class ExperimentalSetupConfiguration(QtWidgets.QVBoxLayout):
 
         spacer = QtWidgets.QSpacerItem(1, 10)
         labels_layout = QtWidgets.QVBoxLayout()
-        labels_layout.addWidget(QtWidgets.QLabel("Taille d'un pas"))
+        labels_layout.addWidget(QtWidgets.QLabel("Taille des pas"))
         labels_layout.addWidget(QtWidgets.QLabel("Délai entre chaque pas"))
         labels_layout.addItem(spacer)
-        labels_layout.addWidget(QtWidgets.QLabel("Nombre de mesures par pas"))
+        labels_layout.addWidget(QtWidgets.QLabel("Mesures par pas"))
 
         self._textboxes_parameters = ["step size", "delay", "measure number"]
         self._textboxes = [
