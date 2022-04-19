@@ -36,8 +36,8 @@ class ExperimentalSetupInformation(QtWidgets.QHBoxLayout):
 
     def display_position(self, data, acquiring_data):
         if data is not None:
-            self._absolute_motor_position_textbox.setText(str(data["positions"][-1] + self._motor._reference_point))
-            self._relative_motor_position_textbox.setText(str(data["positions"][-1]))
+            self._absolute_motor_position_textbox.setText(str(data["absolute positions"][-1]))
+            self._relative_motor_position_textbox.setText(str(data["relative positions"][-1]))
 
 
     def _set_motor_reference_point(self):

@@ -14,9 +14,20 @@ class InterferogramDynamicCanvas(FigureCanvasQTAgg):
 
         self.fig = Figure(**kwargs)
 
-        self._ax = pyplot.subplot2grid((1, 12), (0, 0), colspan=11, fig=self.fig)
-        self._ax.set_xlabel("Position du miroir[µm]")
-        self._ax.set_ylabel("Voltage [-]")
+        self._ax_absolute = pyplot.subplot2grid((1, 12), (0, 0), colspan=11, fig=self.fig)
+        self._ax_relative = self._ax_absolute.twiny()  # Contains invisible line that shows relative positions
+
+        self._voltage_absolute = Line2D([], [], color='#008080', ls='-', marker=".", clip_on=True)
+        self._ax_absolute.add_line(self._voltage_absolute)
+        self._position_cursor = self._ax_absolute.axvline(0, color=matplotlib_config.midblack, ls="--", lw=2)
+
+        self._ax_absolute.set_xlabel("Position absolue [µm]")
+        self._ax_absolute.set_ylabel("Voltage [-]")
+        self._ax_absolute.set_ylim(-1, 1)
+
+        self._voltage_relative = Line2D([], [])
+        self._ax_relative.add_line(self._voltage_relative)
+        self._ax_relative.set_xlabel("Position relative [µm]")
 
         self._voltmeter_ax = pyplot.subplot2grid((1, 12), (0, 11), fig=self.fig)
         self._voltmeter_ax.set_ylim(0, 1)
@@ -27,17 +38,8 @@ class InterferogramDynamicCanvas(FigureCanvasQTAgg):
         for p in self._voltmeter_screen.get_patches():
             self._voltmeter_ax.add_patch(p)
 
-
-        self._voltage = Line2D([], [], color='#008080', ls='-', marker=".", clip_on=True)
-        self._ax.add_line(self._voltage)
-        self._position_cursor = self._ax.axvline(0, color=matplotlib_config.midblack, ls="--", lw=2)
-
-        self._ax.set_ylim(-1, 1)
-
-        FigureCanvasQTAgg.__init__(self, self.fig)
-        self.fig.suptitle("Interférogramme")
         self.fig.tight_layout()
-        self.fig.subplots_adjust(top=0.85, bottom=0.2)
+        FigureCanvasQTAgg.__init__(self, self.fig)
 
 
     def update_voltmeter(self):
@@ -50,21 +52,32 @@ class InterferogramDynamicCanvas(FigureCanvasQTAgg):
         if data is None:
             return
 
+        absolute_positions = data["absolute positions"]
+        relative_positions = data["relative positions"]
+        voltages = data["voltages"]
 
-        self._voltmeter_screen.update(data["voltages"][-1])
+        self._voltmeter_screen.update(voltages[-1])
 
         if acquiring_data:
-            self._voltage.set_data([data["positions"], data["voltages"]])
-            position_min, position_max = min(data["positions"]), max(data["positions"])
+            self._voltage_absolute.set_data([absolute_positions, voltages])
+            self._voltage_relative.set_data([relative_positions, voltages])
+
+            position_min, position_max = np.argmin(absolute_positions), np.argmax(absolute_positions)
+            absolute_min, absolute_max = absolute_positions[position_min], absolute_positions[position_max]
+            relative_min, relative_max = relative_positions[position_min], relative_positions[position_max]
 
         else:
-            position_min = min([self._ax.get_xlim()[0], data["positions"][-1]])
-            position_max = max([self._ax.get_xlim()[1], data["positions"][-1]])
+            absolute_min = min([self._ax_absolute.get_xlim()[0], absolute_positions[-1]])
+            absolute_max = max([self._ax_absolute.get_xlim()[1], absolute_positions[-1]])
 
-        self._position_cursor.set_xdata(data["positions"][-1])
+            relative_min = min([self._ax_relative.get_xlim()[0], relative_positions[-1]])
+            relative_max = max([self._ax_relative.get_xlim()[1], relative_positions[-1]])
 
-        if position_min != position_max:
-            self._ax.set_xlim((position_min, position_max))
+        self._position_cursor.set_xdata(absolute_positions[-1])
+
+        if absolute_min != absolute_max:
+            self._ax_absolute.set_xlim((absolute_min, absolute_max))
+            self._ax_relative.set_xlim((relative_min, relative_max))
 
         self.fig.canvas.draw()
         self.fig.canvas.flush_events()

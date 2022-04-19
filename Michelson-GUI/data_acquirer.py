@@ -29,7 +29,8 @@ class DataAcquirer:
 
     def clear(self):
         self._voltages = []
-        self._positions = []
+        self._relative_positions = []
+        self._absolute_positions = []
 
 
     def acquire(self):
@@ -50,12 +51,17 @@ class DataAcquirer:
 
         while self._is_acquiring:
             if acquire_data:
-                self._positions.append( self._motor.get_relative_position() )
+                self._absolute_positions.append( self._motor.get_absolute_position() )
+                self._relative_positions.append( self._motor.get_relative_position() )
                 self._voltages.append(self._measure_average_voltage(measure_number, delay))
 
                 data = self.get_data()
             else:
-                data = {"positions": [self._motor.get_relative_position()], "voltages": [self._voltmeter.read()]}
+                data = {
+                        "absolute positions": [self._motor.get_absolute_position()],
+                        "relative positions": [self._motor.get_relative_position()],
+                        "voltages": [self._voltmeter.read()]
+                    }
 
             for callback in self._callbacks:
                 callback(data, acquire_data)
@@ -72,7 +78,8 @@ class DataAcquirer:
 
     def get_data(self):
         return {
-                "positions": self._positions,
+                "absolute positions": self._absolute_positions,
+                "relative positions": self._relative_positions,
                 "voltages": self._voltages
             }
 
