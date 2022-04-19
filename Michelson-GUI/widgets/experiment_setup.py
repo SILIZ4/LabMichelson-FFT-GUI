@@ -81,7 +81,9 @@ class ExperimentalSetupConfiguration(QtWidgets.QVBoxLayout):
         self.update_functions = []
 
         radio_buttons_layout = QtWidgets.QVBoxLayout()
-        radio_buttons_layout.addWidget(self._append_widget(QtWidgets.QRadioButton("Avancer")))
+        self._radio_move_forward = QtWidgets.QRadioButton("Avancer")
+        self._radio_move_forward.setChecked(True)
+        radio_buttons_layout.addWidget(self._append_widget(self._radio_move_forward))
         radio_buttons_layout.addWidget(self._append_widget(QtWidgets.QRadioButton("Reculer")))
         radio_buttons_layout.addItem(QtWidgets.QSpacerItem(1, 10))
 
@@ -119,7 +121,7 @@ class ExperimentalSetupConfiguration(QtWidgets.QVBoxLayout):
 
 
     def get_setup_information(self):
-        parameters = {}
+        parameters = {"forward": self._radio_move_forward.isChecked()}
         for parameter, textbox in zip(self._textboxes_parameters, self._textboxes):
             parameters[parameter] = float(textbox.text())
 

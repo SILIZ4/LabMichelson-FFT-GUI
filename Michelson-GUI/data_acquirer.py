@@ -48,7 +48,7 @@ class DataAcquirer:
             data = self.get_data()
             for callback in self._callbacks:
                 callback(data)
-            self._motor.jog()
+            self._motor.jog(bool(parameters["forward"]))
 
 
     def stop(self):

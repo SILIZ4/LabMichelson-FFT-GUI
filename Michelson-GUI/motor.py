@@ -30,8 +30,8 @@ class MotorTest:
     def get_current_position(self):
         return self.position - self.reference_point
 
-    def jog(self):
-        self.position += self.step
+    def jog(self, forward):
+        self.position += self.step if forward else -self.step
 
 
 class Motor:
@@ -133,9 +133,10 @@ class Motor:
         self._ensure_motor_received_instruction()
 
 
-    def jog(self):
+    def jog(self, forward):
         # Do a jog; MGMSG_MOT_MOVE_JOG
-        self.communicator.write(pack('<HBBBB', 0x046A, self.channel, 0x01, self.destination, self.source))
+        direction = 0x01 if forward else 0x02
+        self.communicator.write(pack('<HBBBB', 0x046A, self.channel, direction, self.destination, self.source))
         self._ensure_motor_received_instruction()
         self.wait_until_move_completed()
 
