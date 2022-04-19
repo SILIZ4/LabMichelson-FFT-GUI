@@ -7,18 +7,20 @@ from PyQt5 import QtCore, QtWidgets, QtGui
 import config
 
 from .interferogram import InterferogramDynamicCanvas
+from data_acquirer import DataAcquirer
 
 
 class DataAcquisitionLayout(QtWidgets.QVBoxLayout):
-    def __init__(self, dataAcquirer, toggle_widgets_function, *args):
+    def __init__(self, motor, voltmeter, get_setup_parameters_function, toggle_widgets_function, *args):
         super(QtWidgets.QVBoxLayout, self).__init__(*args)
 
-        self._data_acquirer = dataAcquirer
+        self._interferogram = InterferogramDynamicCanvas()
+        self._data_acquirer = DataAcquirer(motor, voltmeter, get_setup_parameters_function, self._interferogram.draw_frame)
         self.widgets_to_disable = []
         self._acquiring = False
         self._thread = None
 
-        self.addWidget(InterferogramDynamicCanvas())
+        self.addWidget(self._interferogram)
 
         button_layout = QtWidgets.QHBoxLayout()
         self.acquire_data_button = QtWidgets.QPushButton("Acquérir des données")

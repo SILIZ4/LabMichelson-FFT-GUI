@@ -7,7 +7,6 @@ from widgets.experiment_setup import ExperimentalSetupInformation, ExperimentalS
 
 from motor import MotorTest
 from voltmeter import Voltmeter
-from data_acquirer import DataAcquirer
 import config
 
 
@@ -38,7 +37,7 @@ class MainWindow(QtWidgets.QWidget):
         main_layout.addLayout(self.append_layouts_widgets(setup_config))
 
         main_layout.addWidget(LineSeparator())
-        main_layout.addLayout(self.append_layouts_widgets(DataAcquisitionLayout(DataAcquirer(self.motor, self.voltmeter, setup_config.get_setup_information), self.toggle_widgets)))
+        main_layout.addLayout(self.append_layouts_widgets(DataAcquisitionLayout(self.motor, self.voltmeter, setup_config.get_setup_information, self.toggle_widgets)))
 
         self.setLayout(main_layout)
         self.setWindowTitle("Interface de contrôle du montage de Michelson")

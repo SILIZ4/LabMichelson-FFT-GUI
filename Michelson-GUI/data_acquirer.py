@@ -12,10 +12,11 @@ class DataAcquirer:
      - "step size"
      - "delay"
     """
-    def __init__(self, motor, voltmeter, get_acquirer_parameters_function):
+    def __init__(self, motor, voltmeter, get_acquirer_parameters_function, update_function):
         self._motor = motor
         self._voltmeter = voltmeter
         self._get_parameters = get_acquirer_parameters_function
+        self._update_function = update_function
         self._is_acquiring = False
 
         self.clear()
@@ -33,18 +34,13 @@ class DataAcquirer:
 
         parameters = self._get_parameters()
         self._motor.set_step_size(parameters["step size"])
-        measure_number = int(parameters["measure number"])
 
         while self._is_acquiring:
-            self._motor.jog()
             self._positions.append( self._motor.get_current_position() )
+            self._voltages.append(self._measure_average_voltage(int(parameters["measure number"]), parameters["delay"]/1000))
+            self._update_function(self.get_data())
 
-            voltage_sum = 0
-            for i in range(measure_number):
-                voltage_sum += self._voltmeter.read()
-                time.sleep(parameters["delay"]/1000)
-
-            self._voltages.append(voltage_sum/measure_number)
+            self._motor.jog()
 
     def stop(self):
         self._is_acquiring = False
@@ -57,3 +53,10 @@ class DataAcquirer:
                 "positions": self._positions,
                 "voltages": self._voltages
             }
+
+    def _measure_average_voltage(self, measure_number, delay):
+        voltage_sum = 0
+        for i in range(measure_number):
+            voltage_sum += self._voltmeter.read()
+            time.sleep(delay)
+        return voltage_sum/measure_number

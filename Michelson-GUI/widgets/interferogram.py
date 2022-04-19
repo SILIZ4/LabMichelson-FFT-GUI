@@ -1,5 +1,5 @@
 import numpy as np
-from matplotlib import patches, path, pyplot
+from matplotlib import patches, pyplot
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
 from matplotlib.lines import Line2D
@@ -12,23 +12,24 @@ class InterferogramDynamicCanvas(FigureCanvasQTAgg):
 
         self.fig = Figure(**kwargs)
 
-        self.ax = pyplot.subplot2grid((1, 12), (0, 0), colspan=11, fig=self.fig)
-        self.ax.set_xlabel("Position du miroir[µm]")
-        self.ax.set_ylabel("Voltage [-]")
+        self._ax = pyplot.subplot2grid((1, 12), (0, 0), colspan=11, fig=self.fig)
+        self._ax.set_xlabel("Position du miroir[µm]")
+        self._ax.set_ylabel("Voltage [-]")
 
-        self.voltmeter_ax = pyplot.subplot2grid((1, 12), (0, 11), fig=self.fig)
-        self.voltmeter_ax.set_ylim(0, 1)
-        self.voltmeter_ax.yaxis.tick_right()
-        self.voltmeter_ax.get_xaxis().set_visible(False)
+        self._voltmeter_ax = pyplot.subplot2grid((1, 12), (0, 11), fig=self.fig)
+        self._voltmeter_ax.set_ylim(0, 1)
+        self._voltmeter_ax.yaxis.tick_right()
+        self._voltmeter_ax.get_xaxis().set_visible(False)
 
-        self.voltmeter = VoltmeterScreen(0.2)
-        self.voltmeter_ax.add_artist(self.voltmeter.get_patch())
+        self._voltmeter = VoltmeterScreen(0.2)
+        for p in self._voltmeter.get_patches():
+            self._voltmeter_ax.add_patch(p)
 
 
-        self.line = Line2D([], [], color='#008080', ls='-')
-        self.ax.add_line(self.line)
+        self._line = Line2D([], [], color='#008080', ls='-', marker=".", clip_on=True)
+        self._ax.add_line(self._line)
 
-        self.ax.set_ylim(-1, 1)
+        self._ax.set_ylim(-1, 1)
 
         FigureCanvasQTAgg.__init__(self, self.fig)
         self.fig.suptitle("Interférogramme")
@@ -36,40 +37,44 @@ class InterferogramDynamicCanvas(FigureCanvasQTAgg):
         self.fig.subplots_adjust(top=0.85, bottom=0.2)
 
 
-    def _draw_frame(self, framedata):
-        global interferogram_data
-        self.line.set_data(interferogram_data)
-        self._drawn_artists = [self.line]
+    def draw_frame(self, data):
+        if len(data["positions"]) == 0:
+            return
 
-    def rescale_axis(self, limits, zoomed_limits):
-        self.ax.set_xlim(*limits)
+        self._line.set_data([data["positions"], data["voltages"]])
+        self._voltmeter.update(data["voltages"][-1])
+        self._drawn_artists = [self._line]
+
+        position_min, position_max = min(data["positions"]), max(data["positions"])
+
+        if len(data["positions"]) > 1:
+            self._ax.set_xlim((position_min, position_max))
+
+        self.fig.canvas.draw()
+        self.fig.canvas.flush_events()
 
 
 class VoltmeterScreen:
+    ok_color = "#68b858"
+    warning_color = "#F8D839"
+    clipping_color = "#C94E4E"
+
+    cursor_width = .02
+
     def __init__(self, value=0, maximum=1):
-        self.value = value
+        self.warning_threshold = .7*maximum
+        self.clipping_threshold = .9*maximum
         self.max = maximum
-        self.vertices = np.array([[0, 0], [1, 0], [1, value], [0, value], [0, 0]])
-        self.code = np.array([path.Path.MOVETO] + [path.Path.LINETO]*3 + [path.Path.CLOSEPOLY])
 
-        self.cmap = pyplot.get_cmap("hsv")
-        self.safe_zone = 0.8
-        self.safe_zone_color = self.cmap(0.4)
+        self.cursor = patches.Rectangle((0, abs(value)+self.cursor_width/2), 1, self.cursor_width, color=matplotlib_config.midblack)
 
-        self.set_color()
-
-    def get_patch(self, **kwargs):
-        _path = path.Path(self.vertices, self.code)
-        return patches.PathPatch(_path, color=self.color, **kwargs)
+    def get_patches(self, **kwargs):
+        return [
+                patches.Rectangle((0, 0), 1, self.warning_threshold, color=self.ok_color),
+                patches.Rectangle((0, self.warning_threshold), 1, self.clipping_threshold-self.warning_threshold, color=self.warning_color),
+                patches.Rectangle((0, self.clipping_threshold), 1, self.max-self.warning_threshold, color=self.clipping_color),
+                self.cursor
+            ]
 
     def update(self, value):
-        self.value = value
-        self.vertices[2][1] = value
-        self.vertices[3][1] = value
-        self.set_color()
-
-    def set_color(self):
-        if self.value < self.safe_zone:
-            self.color = self.safe_zone_color
-        else:
-            self.color = self.cmap( 0.4 * (1-self.value/self.max) )
+        self.cursor.set_xy((0, abs(value)+self.cursor_width/2))
