@@ -28,8 +28,10 @@ class InterferogramDynamicCanvas(FigureCanvasQTAgg):
             self._voltmeter_ax.add_patch(p)
 
 
-        self._line = Line2D([], [], color='#008080', ls='-', marker=".", clip_on=True)
-        self._ax.add_line(self._line)
+        self._voltage = Line2D([], [], color='#008080', ls='-', marker=".", clip_on=True)
+        self._ax.add_line(self._voltage)
+        self._position_cursor = self._ax.axvline(0, color=matplotlib_config.midblack, ls="--", lw=2)
+        print(self._position_cursor)
 
         self._ax.set_ylim(-1, 1)
 
@@ -45,17 +47,24 @@ class InterferogramDynamicCanvas(FigureCanvasQTAgg):
         self.fig.canvas.flush_events()
 
 
-    def draw_frame(self, data):
-        if len(data["positions"]) == 0:
+    def draw_frame(self, data, acquiring_data):
+        if data is None:
             return
 
+
         self._voltmeter_screen.update(data["voltages"][-1])
-        self._line.set_data([data["positions"], data["voltages"]])
-        self._drawn_artists = [self._line]
 
-        position_min, position_max = min(data["positions"]), max(data["positions"])
+        if acquiring_data:
+            self._voltage.set_data([data["positions"], data["voltages"]])
+            position_min, position_max = min(data["positions"]), max(data["positions"])
 
-        if len(data["positions"]) > 1:
+        else:
+            position_min = min([self._ax.get_xlim()[0], data["positions"][-1]])
+            position_max = max([self._ax.get_xlim()[1], data["positions"][-1]])
+
+        self._position_cursor.set_xdata(data["positions"][-1])
+
+        if position_min != position_max:
             self._ax.set_xlim((position_min, position_max))
 
         self.fig.canvas.draw()

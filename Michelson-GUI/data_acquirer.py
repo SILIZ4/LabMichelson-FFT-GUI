@@ -39,16 +39,27 @@ class DataAcquirer:
         self._is_acquiring = True
 
         parameters = self._get_parameters()
+        data = None
+
         self._motor.set_step_size(parameters["step size"])
+        measure_number = int(parameters["measure number"])
+        delay = parameters["delay"]/1000
+        move_forward = bool(parameters["forward"])
+
+        acquire_data = measure_number > 0
 
         while self._is_acquiring:
-            self._positions.append( self._motor.get_current_position() )
-            self._voltages.append(self._measure_average_voltage(int(parameters["measure number"]), parameters["delay"]/1000))
+            if acquire_data:
+                self._positions.append( self._motor.get_current_position() )
+                self._voltages.append(self._measure_average_voltage(measure_number, delay))
 
-            data = self.get_data()
+                data = self.get_data()
+            else:
+                data = {"positions": [self._motor.get_current_position()], "voltages": [self._voltmeter.read()]}
+
             for callback in self._callbacks:
-                callback(data)
-            self._motor.jog(bool(parameters["forward"]))
+                callback(data, acquire_data)
+            self._motor.jog(move_forward)
 
 
     def stop(self):

@@ -13,6 +13,8 @@ rcParams["axes.labelsize"] = 9
 rcParams["axes.facecolor"] = "white"
 rcParams["axes.grid"] = False
 rcParams["axes.edgecolor"] = lightgray
+rcParams["axes.spines.right"] = False
+rcParams["axes.spines.top"] = False
 
 rcParams["xtick.labelsize"] = 8
 rcParams["ytick.labelsize"] = 8

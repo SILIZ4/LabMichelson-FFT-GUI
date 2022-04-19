@@ -59,8 +59,8 @@ class ExperimentalSetupInformation(QtWidgets.QHBoxLayout):
         self._motor_position_textbox.setText(str(motor_position))
 
 
-    def display_position(self, data):
-        if len(data["positions"]) > 0:
+    def display_position(self, data, acquiring_data):
+        if data is not None:
             self._motor_position_textbox.setText(str(data["positions"][-1]))
 
 
