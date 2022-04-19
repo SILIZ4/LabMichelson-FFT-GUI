@@ -5,12 +5,13 @@ import config
 
 class DataAcquirer:
     """
-    Acquires data by moving the motor and reading voltage
+    Acquires data by moving the motor and averaging voltage for each step.
 
     Parameters required by the "acquire" method are:
-     - "measure number"
-     - "step size"
-     - "delay"
+     - "measure number": number of averaged voltage measures per point
+     - "step size": size of motor steps in µm
+     - "delay": delay between voltage measures in ms
+     - "forward": bool indicating if steps are forward or backwards
     """
 
     def __init__(self, motor, voltmeter, get_acquirer_parameters_function):
