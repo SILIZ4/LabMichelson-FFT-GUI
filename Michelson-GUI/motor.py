@@ -137,6 +137,10 @@ class Motor:
         self._reference_point = self.get_absolute_position()
 
 
+    def set_reference_point_to(self, value):
+        self._reference_point = value
+
+
     def home(self):
         # Home Stage; MGMSG_MOT_MOVE_HOME
         self.communicator.write(pack('<HBBBB', 0x0443, self.channel, 0x00, self.destination, self.source))
