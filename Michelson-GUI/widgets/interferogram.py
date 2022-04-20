@@ -25,7 +25,7 @@ class InterferogramDynamicCanvas(FigureCanvasQTAgg):
         self._ax_absolute.set_ylabel("Voltage [-]")
         self._ax_absolute.set_ylim(-1, 1)
 
-        self._voltage_relative = Line2D([], [])
+        self._voltage_relative = Line2D([], [], ls='')
         self._ax_relative.add_line(self._voltage_relative)
         self._ax_relative.set_xlabel("Position relative [µm]")
 
@@ -48,7 +48,7 @@ class InterferogramDynamicCanvas(FigureCanvasQTAgg):
         self.fig.canvas.flush_events()
 
 
-    def draw_frame(self, data, acquiring_data):
+    def draw_frame(self, data, acquiring):
         if data is None:
             return
 
@@ -57,30 +57,39 @@ class InterferogramDynamicCanvas(FigureCanvasQTAgg):
         voltages = data["voltages"]
 
         self._voltmeter_screen.update(voltages[-1])
+        self._position_cursor.set_xdata(absolute_positions[-1]) # line plotted on absolute axis
 
-        if acquiring_data:
+        if acquiring:
             self._voltage_absolute.set_data([absolute_positions, voltages])
             self._voltage_relative.set_data([relative_positions, voltages])
 
-            position_min, position_max = np.argmin(absolute_positions), np.argmax(absolute_positions)
-            absolute_min, absolute_max = absolute_positions[position_min], absolute_positions[position_max]
-            relative_min, relative_max = relative_positions[position_min], relative_positions[position_max]
+            self._rescale_xaxis(self._ax_absolute, absolute_positions)
+            self._rescale_xaxis(self._ax_relative, relative_positions)
 
-        else:
-            absolute_min = min([self._ax_absolute.get_xlim()[0], absolute_positions[-1]])
-            absolute_max = max([self._ax_absolute.get_xlim()[1], absolute_positions[-1]])
-
-            relative_min = min([self._ax_relative.get_xlim()[0], relative_positions[-1]])
-            relative_max = max([self._ax_relative.get_xlim()[1], relative_positions[-1]])
-
-        self._position_cursor.set_xdata(absolute_positions[-1])
-
-        if absolute_min != absolute_max:
-            self._ax_absolute.set_xlim((absolute_min, absolute_max))
-            self._ax_relative.set_xlim((relative_min, relative_max))
+        else: # Display motor position on figure if no data collected
+            self._rescale_xaxis_if_out_of_range(self._ax_absolute, absolute_positions[-1])
+            self._rescale_xaxis_if_out_of_range(self._ax_relative, relative_positions[-1])
 
         self.fig.canvas.draw()
         self.fig.canvas.flush_events()
+
+
+    @staticmethod
+    def _rescale_xaxis(ax, data):
+        min_value, max_value = min(data), max(data)
+
+        if min_value != max_value:
+            ax.set_xlim((min_value, max_value))
+
+
+    @staticmethod
+    def _rescale_xaxis_if_out_of_range(ax, point):
+        xlim = ax.get_xlim()
+        min_value = min([xlim[0], point])
+        max_value = max([xlim[1], point])
+
+        if min_value != max_value:
+            ax.set_xlim((min_value, max_value))
 
 
 class VoltmeterScreen:
