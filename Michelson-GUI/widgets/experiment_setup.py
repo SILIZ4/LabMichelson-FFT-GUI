@@ -12,7 +12,17 @@ class ExperimentalSetupInformation(QtWidgets.QHBoxLayout):
         self.widgets_to_disable = []
         self.update_functions = [self._get_and_display_position]
         self._motor = motor
-        cols = [QtWidgets.QVBoxLayout() for i in range(2)]
+        cols = [QtWidgets.QVBoxLayout() for i in range(4)]
+
+        for i, col in enumerate(cols):
+            label = ""
+            if i == 1:
+                label = "Moteur"
+            elif i == 3:
+                label = "Miroir"
+            label = QtWidgets.QLabel(label)
+            label.setAlignment(QtCore.Qt.AlignCenter)
+            col.addWidget(label)
 
         self._relative_motor_position_textbox = FloatWithUnitLayout("µm", editable=False, default=str(motor.get_relative_position()))
         cols[0].addWidget(QtWidgets.QLabel("Position relative:"), 1)
@@ -21,6 +31,22 @@ class ExperimentalSetupInformation(QtWidgets.QHBoxLayout):
         self._absolute_motor_position_textbox = FloatWithUnitLayout("µm", editable=False, default=str(motor.get_absolute_position()))
         cols[1].addLayout(self._relative_motor_position_textbox, 2)
         cols[1].addLayout(self._absolute_motor_position_textbox, 2)
+
+        self._relative_screw_position_textbox = FloatWithUnitLayout("µm", editable=False, default=str(motor.get_relative_position()))
+        cols[2].addWidget(QtWidgets.QLabel("Position relative:"), 1)
+        cols[2].addWidget(QtWidgets.QLabel("Position absolue:"), 1)
+
+        self._absolute_screw_position_textbox = FloatWithUnitLayout("µm", editable=False, default=str(motor.get_absolute_position()))
+        cols[3].addLayout(self._relative_screw_position_textbox, 2)
+        cols[3].addLayout(self._absolute_screw_position_textbox, 2)
+
+        cols[0].addWidget(QtWidgets.QLabel("Facteur de calibration:"))
+        self._calibration_factor_textbox = FloatTextBox(editable=True, default=str(config.calibration_factor))
+        cols[1].addWidget(self._append_widget(self._calibration_factor_textbox))
+        for i, col in enumerate(cols):
+            if i > 1:
+                col.addWidget(QtWidgets.QLabel(""))
+
 
         for col in cols:
             self.addLayout(col)
@@ -32,14 +58,26 @@ class ExperimentalSetupInformation(QtWidgets.QHBoxLayout):
 
     def _get_and_display_position(self):
         absolute_position = self._motor.get_absolute_position()
-        self._absolute_motor_position_textbox.setText( self.format_position(absolute_position) )
-        self._relative_motor_position_textbox.setText( self.format_position(absolute_position-self._motor._reference_point) )
+        relative_position = absolute_position - self._motor._reference_point
+
+        self._display_positions(absolute_position, relative_position)
 
 
     def display_position(self, data, acquiring_data):
         if data is not None:
-            self._absolute_motor_position_textbox.setText( self.format_position(data["absolute positions"][-1]) )
-            self._relative_motor_position_textbox.setText( self.format_position(data["relative positions"][-1]) )
+            motor_absolute_position = data["absolute positions"][-1]
+            motor_relative_position = data["relative positions"][-1]
+
+            self._display_positions(motor_absolute_position, motor_relative_position)
+
+
+    def _display_positions(self, motor_absolute_position, motor_relative_position):
+        calibration = float(self._calibration_factor_textbox.text())
+
+        self._absolute_motor_position_textbox.setText( self.format_position(motor_absolute_position) )
+        self._relative_motor_position_textbox.setText( self.format_position(motor_relative_position) )
+        self._absolute_screw_position_textbox.setText( self.format_position(motor_absolute_position/calibration) )
+        self._relative_screw_position_textbox.setText( self.format_position(motor_relative_position/calibration) )
 
     def format_position(self, position):
         return str( round(position, 2) )
