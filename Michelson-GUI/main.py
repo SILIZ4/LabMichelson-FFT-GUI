@@ -39,7 +39,7 @@ class MainWindow(QtWidgets.QWidget):
         main_layout.addWidget(LineSeparator())
         self.addLayout(main_layout, setup_config)
 
-        data_acquirer = DataAcquirer(self.motor, self.voltmeter, setup_config.get_setup_information)
+        data_acquirer = DataAcquirer(self.motor, self.voltmeter, setup_config.get_setup_information, setup_information.get_calibration_factor)
         data_acquirer.add_callback(setup_information.display_position)
         data_acquisition = DataAcquisitionLayout(self.motor, self.voltmeter, data_acquirer, self._toggle_widgets, self._toggle_refresh)
         main_layout.addWidget(LineSeparator())

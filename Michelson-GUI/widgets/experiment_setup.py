@@ -56,19 +56,27 @@ class ExperimentalSetupInformation(QtWidgets.QHBoxLayout):
         self.addWidget(self._append_widget(set_relative_position_button))
 
 
-    def _get_and_display_position(self):
-        absolute_position = self._motor.get_absolute_position()
-        relative_position = absolute_position - self._motor._reference_point
-
-        self._display_positions(absolute_position, relative_position)
-
-
     def display_position(self, data, acquiring_data):
         if data is not None:
             motor_absolute_position = data["absolute positions"][-1]
             motor_relative_position = data["relative positions"][-1]
 
             self._display_positions(motor_absolute_position, motor_relative_position)
+
+
+    def format_position(self, position):
+        return str( round(position, 2) )
+
+
+    def get_calibration_factor(self):
+        return float(self._calibration_factor_textbox.text())
+
+
+    def _get_and_display_position(self):
+        absolute_position = self._motor.get_absolute_position()
+        relative_position = absolute_position - self._motor._reference_point
+
+        self._display_positions(absolute_position, relative_position)
 
 
     def _display_positions(self, motor_absolute_position, motor_relative_position):
@@ -78,9 +86,6 @@ class ExperimentalSetupInformation(QtWidgets.QHBoxLayout):
         self._relative_motor_position_textbox.setText( self.format_position(motor_relative_position) )
         self._absolute_screw_position_textbox.setText( self.format_position(motor_absolute_position/calibration) )
         self._relative_screw_position_textbox.setText( self.format_position(motor_relative_position/calibration) )
-
-    def format_position(self, position):
-        return str( round(position, 2) )
 
 
     def _set_motor_reference_point(self):

@@ -14,10 +14,11 @@ class DataAcquirer:
      - "forward": bool indicating if steps are forward or backwards
     """
 
-    def __init__(self, motor, voltmeter, get_acquirer_parameters_function):
+    def __init__(self, motor, voltmeter, get_acquirer_parameters_function, get_calibration_function):
         self._motor = motor
         self._voltmeter = voltmeter
         self._get_parameters = get_acquirer_parameters_function
+        self._get_calibration = get_calibration_function
         self._callbacks = []
         self._is_acquiring = False
 
@@ -61,7 +62,8 @@ class DataAcquirer:
                 data = {
                         "absolute positions": [self._motor.get_absolute_position()],
                         "relative positions": [self._motor.get_relative_position()],
-                        "voltages": [self._voltmeter.read()]
+                        "voltages": [self._voltmeter.read()],
+                        "calibration": self._get_calibration()
                     }
 
             for callback in self._callbacks:
@@ -81,7 +83,8 @@ class DataAcquirer:
         return {
                 "absolute positions": self._absolute_positions,
                 "relative positions": self._relative_positions,
-                "voltages": self._voltages
+                "voltages": self._voltages,
+                "calibration": self._get_calibration()
             }
 
 
