@@ -2,6 +2,8 @@ from PyQt5 import QtCore, QtWidgets, QtGui
 
 from .textbox import FloatWithUnitLayout, FloatTextBox
 
+import config
+
 
 class ExperimentalSetupInformation(QtWidgets.QHBoxLayout):
     def __init__(self, motor, *args):
@@ -30,14 +32,17 @@ class ExperimentalSetupInformation(QtWidgets.QHBoxLayout):
 
     def _get_and_display_position(self):
         absolute_position = self._motor.get_absolute_position()
-        self._absolute_motor_position_textbox.setText(str(absolute_position))
-        self._relative_motor_position_textbox.setText(str(absolute_position-self._motor._reference_point))
+        self._absolute_motor_position_textbox.setText( self.format_position(absolute_position) )
+        self._relative_motor_position_textbox.setText( self.format_position(absolute_position-self._motor._reference_point) )
 
 
     def display_position(self, data, acquiring_data):
         if data is not None:
-            self._absolute_motor_position_textbox.setText(str(data["absolute positions"][-1]))
-            self._relative_motor_position_textbox.setText(str(data["relative positions"][-1]))
+            self._absolute_motor_position_textbox.setText( self.format_position(data["absolute positions"][-1]) )
+            self._relative_motor_position_textbox.setText( self.format_position(data["relative positions"][-1]) )
+
+    def format_position(self, position):
+        return str( round(position, 2) )
 
 
     def _set_motor_reference_point(self):
@@ -76,9 +81,11 @@ class ExperimentalSetupConfiguration(QtWidgets.QVBoxLayout):
 
         self._textboxes_parameters = ["step size", "delay", "measure number"]
         self._textboxes = [
-                    FloatWithUnitLayout("µm", default="1", minimum=0.1, maximum=2),
-                    FloatWithUnitLayout("ms", default="10", minimum=1, maximum=50),
-                    FloatTextBox(editable=True, default="10", minimum=0, maximum=100, decimals=0)
+                    FloatWithUnitLayout("µm", default=str(config.motor_steps["default"]),
+                                    minimum=config.motor_steps["min"], maximum=config.motor_steps["max"]),
+                    FloatWithUnitLayout("ms", default=str(config.step_delay["default"]),
+                                    minimum=config.step_delay["min"], maximum=config.step_delay["max"]),
+                    FloatTextBox(editable=True, default="10", decimals=0)
                 ]
         text_box_layout = QtWidgets.QVBoxLayout()
 
