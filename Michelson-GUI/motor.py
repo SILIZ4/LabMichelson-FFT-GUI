@@ -75,7 +75,7 @@ class Motor:
     unit_conversion = {
                 # "ZST225B": { "MU/mm": 2008645.63, "MU/(mm/s)": 107824097.5, "MU/(mm/s^2)": 22097.3} Incorrect factor?
                 # These values were calibrated manually
-                "ZST225B": { "MU/um": 2008645.63/0.26886 * 1e3, "MU/(mm/s)": 107824097.5/0.26886, "MU/(mm/s^2)": 22097.3/0.26886}
+                "ZST225B": { "MU/um": 2008645.63/0.26886/1e3, "MU/(mm/s)": 107824097.5, "MU/(mm/s^2)": 22097.3}
             }
 
     def __init__(self, usb_port_location, motor_name):
@@ -89,17 +89,20 @@ class Motor:
         stop_bits = 1
         parity = serial.PARITY_NONE
 
-        self.channel = 1 #Channel is always 1 for a K Cube/T Cube
-        self.source = 0x01 #Source Byte
-        self.destination = 0x50 #Destination byte; 0x50 for T Cube/K Cube, USB controllers
+        self.channel = 1 # Channel is always 1 for a K Cube/T Cube
+        self.source = 0x01 # Source Byte
+        self.destination = 0x50 # Destination byte; 0x50 for T Cube/K Cube, USB controllers
 
-        self.communicator = serial.Serial(port=usb_port_location, baudrate=baud_rate, bytesize=data_bits, parity=parity, stopbits=stop_bits, timeout=0.1)
+        self.communicator = serial.Serial(port=usb_port_location, baudrate=baud_rate, bytesize=data_bits,
+                                            parity=parity, stopbits=stop_bits, timeout=0.1)
 
         # Get hardware info; MGMSG_HW_REQ_INFO; may be required by a K Cube to allow confirmation Rx messages
         self.communicator.write(pack('<HBBBB', 0x0005, 0x00, 0x00, 0x50, 0x01))
         self.flush()
 
         self.enable_stage()
+        self.home()
+
         self.set_reference_point()
 
 
@@ -134,6 +137,18 @@ class Motor:
         self._reference_point = self.get_absolute_position()
 
 
+    def home(self):
+        # Home Stage; MGMSG_MOT_MOVE_HOME
+        self.communicator.write(pack('<HBBBB', 0x0443, self.channel, 0x00, self.destination, self.source))
+
+        # Wait until stage homed; MGMSG_MOT_MOVE_HOMED
+        Rx = ''
+        Homed = pack('<H',0x0444)
+        while Rx != Homed:
+            Rx = self.communicator.read(2)
+        self.flush()
+
+
     def set_step_size(self, step_size):
         # Set job params; MGMSG_MOT_SET_JOGPARAMS
         self.communicator.write(pack('<HBBBBHHIIIIH', 0x0416, 0x16, 0x00, self.destination|0x80, self.source, self.channel,
@@ -154,7 +169,7 @@ class Motor:
         self.wait_until_move_completed()
 
 
-    def move_to(self, position, relative=True):
+    def move_to(self, position, relative=False):
         if relative:
             # Move to relative position; MGMSG_MOT_MOVE_RELATIVE (long version)
             self.communicator.write(pack('<HBBBBHI', 0x0448, 0x06, 0x00, self.destination|0x80, self.source, self.channel,
@@ -182,6 +197,11 @@ class Motor:
         self.communicator.write(pack('<HBBBB',0x0465, 0x02, self.channel, self.destination, self.source))
 
 
+    def flush(self):
+        self.communicator.flushInput()
+        self.communicator.flushOutput()
+
+
     def convert_position_to_MU(self, position):
         """ position in um """
         return int(round(self.unit_conversions["MU/um"]*position))
@@ -200,11 +220,6 @@ class Motor:
     def convert_acceleration_to_MU(self, acceleration):
         """ acceleration in mm/s^2 """
         return int(round(self.unit_conversions["MU/(mm/s^2)"]*acceleration))
-
-
-    def flush(self):
-        self.communicator.flushInput()
-        self.communicator.flushOutput()
 
 
     def _ensure_motor_received_instruction(self):
